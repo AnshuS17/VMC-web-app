@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vadodara Municipal Services</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">VM</div>
+        <div>
+          <p class="eyebrow">Vadodara Municipal Corporation</p>
+          <h1>Public Service Response Portal</h1>
+        </div>
+      </div>
+      <nav class="nav-actions" aria-label="Primary">
+        <a href="#report">Report Issue</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#cases">Cases</a>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode">
+          <span class="theme-icon" aria-hidden="true">D</span>
+          <span id="themeText">Dark</span>
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero-shell">
+        <div class="hero-copy">
+          <p class="section-kicker">Citizen services</p>
+          <h2>Report civic problems and track action by ward.</h2>
+          <p>
+            Submit issues for garbage on road, no electricity, water logging,
+            potholes, drainage, streetlights, and other public services.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#report">New Complaint</a>
+            <a class="button secondary" href="#cases">View Status</a>
+          </div>
+        </div>
+        <div class="service-strip" aria-label="Available service categories">
+          <article class="service-card" data-service-card="garbage">
+            <span class="service-icon">G</span>
+            <strong>Garbage</strong>
+            <small>Roadside waste and collection delays</small>
+            <button type="button">Report garbage</button>
+          </article>
+          <article class="service-card" data-service-card="electricity">
+            <span class="service-icon">E</span>
+            <strong>Electricity</strong>
+            <small>No power and unsafe supply points</small>
+            <button type="button">Report electricity</button>
+          </article>
+          <article class="service-card" data-service-card="waterlogging">
+            <span class="service-icon">W</span>
+            <strong>Water Logging</strong>
+            <small>Flooding, blocked drains, rain response</small>
+            <button type="button">Report water logging</button>
+          </article>
+          <article class="service-card" data-service-card="potholes">
+            <span class="service-icon">P</span>
+            <strong>Potholes</strong>
+            <small>Damaged roads and unsafe surfaces</small>
+            <button type="button">Report potholes</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="gallery-section" aria-label="Public service gallery">
+        <div class="section-heading">
+          <p class="section-kicker">Quick categories</p>
+          <h2>Choose a service card to start faster</h2>
+        </div>
+        <div class="gallery-grid">
+          <button class="gallery-card garbage" type="button" data-service-card="garbage">
+            <span>Garbage</span>
+            <strong>Road cleaning and waste removal</strong>
+          </button>
+          <button class="gallery-card electricity" type="button" data-service-card="electricity">
+            <span>Electricity</span>
+            <strong>No power or unsafe lines</strong>
+          </button>
+          <button class="gallery-card water" type="button" data-service-card="waterlogging">
+            <span>Water Logging</span>
+            <strong>Flooded roads and blocked drains</strong>
+          </button>
+          <button class="gallery-card pothole" type="button" data-service-card="potholes">
+            <span>Potholes</span>
+            <strong>Road damage and traffic hazards</strong>
+          </button>
+          <button class="gallery-card drainage" type="button" data-service-card="drainage">
+            <span>Drainage</span>
+            <strong>Overflow and sewage complaints</strong>
+          </button>
+          <button class="gallery-card streetlight" type="button" data-service-card="streetlight">
+            <span>Streetlight</span>
+            <strong>Dark streets and faulty poles</strong>
+          </button>
+        </div>
+      </section>
+
+      <section class="content-grid" id="report">
+        <div class="form-panel">
+          <div class="section-heading">
+            <p class="section-kicker">Complaint intake</p>
+            <h2>Register a public service complaint</h2>
+          </div>
+          <form id="complaintForm" novalidate>
+            <div class="field-row">
+              <label>
+                Service type
+                <select name="serviceType" required>
+                  <option value="">Select service</option>
+                  <option value="garbage">Garbage on road</option>
+                  <option value="electricity">No electricity</option>
+                  <option value="waterlogging">Water logging</option>
+                  <option value="potholes">Potholes on road</option>
+                  <option value="drainage">Drainage issue</option>
+                  <option value="streetlight">Streetlight issue</option>
+                  <option value="other">Other public service</option>
+                </select>
+                <span class="field-error" data-error-for="serviceType"></span>
+              </label>
+              <label>
+                Ward
+                <select name="ward" required>
+                  <option value="">Select ward</option>
+                  <option>Ward 1</option>
+                  <option>Ward 2</option>
+                  <option>Ward 3</option>
+                  <option>Ward 4</option>
+                  <option>Ward 5</option>
+                  <option>Ward 6</option>
+                  <option>Ward 7</option>
+                  <option>Ward 8</option>
+                  <option>Ward 9</option>
+                  <option>Ward 10</option>
+                  <option>Ward 11</option>
+                  <option>Ward 12</option>
+                </select>
+                <span class="field-error" data-error-for="ward"></span>
+              </label>
+            </div>
+
+            <label>
+              Complaint title
+              <input name="title" maxlength="90" placeholder="Example: Water logging near Karelibaug bus stop" required />
+              <span class="field-error" data-error-for="title"></span>
+            </label>
+
+            <label>
+              Exact location
+              <input name="location" placeholder="Area, road, landmark" required />
+              <span class="field-error" data-error-for="location"></span>
+            </label>
+
+            <div class="map-panel">
+              <div>
+                <p class="map-title">Area detection</p>
+                <p class="map-status" id="mapStatus">Use current location to auto-fill nearby Vadodara area and ward.</p>
+              </div>
+              <button class="map-button" id="detectLocation" type="button">Detect Area</button>
+              <div class="map-frame" id="mapFrame" aria-label="Vadodara map preview">
+                <iframe
+                  id="mapPreview"
+                  title="Vadodara map preview"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=73.111%2C22.255%2C73.245%2C22.345&amp;layer=mapnik&amp;marker=22.3072%2C73.1812">
+                </iframe>
+              </div>
+              <input type="hidden" name="latitude" />
+              <input type="hidden" name="longitude" />
+            </div>
+
+            <label>
+              Details
+              <textarea name="description" rows="5" placeholder="Describe what happened, when it started, and any safety concern." required></textarea>
+              <span class="field-error" data-error-for="description"></span>
+            </label>
+
+            <div class="field-row">
+              <label>
+                Citizen name
+                <input name="citizenName" placeholder="Full name" required />
+                <span class="field-error" data-error-for="citizenName"></span>
+              </label>
+              <label>
+                Mobile number
+                <input name="phone" inputmode="numeric" maxlength="10" placeholder="10 digit number" required />
+                <span class="field-error" data-error-for="phone"></span>
+              </label>
+            </div>
+
+            <button class="submit-button" type="submit">Submit Complaint</button>
+            <p class="form-message" id="formMessage" role="status"></p>
+          </form>
+        </div>
+
+        <aside class="dashboard-panel" id="dashboard">
+          <div class="section-heading">
+            <p class="section-kicker">Live overview</p>
+            <h2>Service dashboard</h2>
+          </div>
+          <div class="stats-grid">
+            <div class="stat">
+              <span>Total</span>
+              <strong id="statTotal">0</strong>
+            </div>
+            <div class="stat">
+              <span>Open</span>
+              <strong id="statOpen">0</strong>
+            </div>
+            <div class="stat">
+              <span>In Progress</span>
+              <strong id="statProgress">0</strong>
+            </div>
+            <div class="stat">
+              <span>Resolved</span>
+              <strong id="statResolved">0</strong>
+            </div>
+          </div>
+          <div class="type-breakdown" id="typeBreakdown"></div>
+        </aside>
+      </section>
+
+      <section class="cases-section" id="cases">
+        <div class="section-heading">
+          <p class="section-kicker">Case management</p>
+          <h2>Complaint tracking</h2>
+        </div>
+
+        <div class="filters">
+          <label>
+            Search
+            <input id="searchInput" placeholder="Search ID, road, ward, area" />
+          </label>
+          <label>
+            Status
+            <select id="statusFilter">
+              <option value="all">All statuses</option>
+              <option>Open</option>
+              <option>In Progress</option>
+              <option>Resolved</option>
+            </select>
+          </label>
+          <label>
+            Service
+            <select id="serviceFilter">
+              <option value="all">All services</option>
+              <option value="garbage">Garbage</option>
+              <option value="electricity">Electricity</option>
+              <option value="waterlogging">Water logging</option>
+              <option value="potholes">Potholes</option>
+              <option value="drainage">Drainage</option>
+              <option value="streetlight">Streetlight</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="view-toolbar" aria-label="Complaint layout">
+          <span>View style</span>
+          <div class="view-switch" role="group" aria-label="Switch complaint layout">
+            <button class="view-button active" type="button" data-view="list" aria-pressed="true">List</button>
+            <button class="view-button" type="button" data-view="grid" aria-pressed="false">Grid</button>
+          </div>
+        </div>
+
+        <div class="case-list" id="caseList" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="caseTemplate">
+      <article class="case-card">
+        <div class="case-main">
+          <div class="case-head">
+            <span class="case-id"></span>
+            <span class="priority-pill"></span>
+          </div>
+          <h3></h3>
+          <p class="case-description"></p>
+          <dl>
+            <div>
+              <dt>Location</dt>
+              <dd class="case-location"></dd>
+            </div>
+            <div>
+              <dt>Ward</dt>
+              <dd class="case-ward"></dd>
+            </div>
+            <div>
+              <dt>Reported</dt>
+              <dd class="case-date"></dd>
+            </div>
+            <div>
+              <dt>Map</dt>
+              <dd><a class="case-map-link" href="#" target="_blank" rel="noreferrer">Open map</a></dd>
+            </div>
+          </dl>
+        </div>
+        <div class="case-actions">
+          <span class="status-pill"></span>
+          <select class="status-select" aria-label="Update complaint status">
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Resolved</option>
+          </select>
+        </div>
+      </article>
+    </template>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

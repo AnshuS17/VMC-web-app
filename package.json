@@ -1,0 +1,17 @@
+{
+  "name": "vadodara-municipality-services",
+  "version": "1.0.0",
+  "description": "Public service complaint portal for Vadodara municipal services.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "vadodara",
+    "municipality",
+    "public-services"
+  ],
+  "author": "",
+  "license": "MIT"
+}
