@@ -3,10 +3,11 @@ const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || "127.0.0.1";
+const IS_VERCEL = Boolean(process.env.VERCEL);
 const PUBLIC_DIR = path.join(__dirname, "public");
-const DATA_DIR = path.join(__dirname, "data");
+const DATA_DIR = IS_VERCEL ? path.join("/tmp", "vmc-data") : path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "complaints.json");
 
 const SERVICE_TYPES = new Set([
@@ -327,7 +328,7 @@ function serveStatic(req, res, url) {
   });
 }
 
-const server = http.createServer(async (req, res) => {
+async function requestHandler(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (url.pathname.startsWith("/api/")) {
@@ -336,9 +337,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   serveStatic(req, res, url);
-});
+}
 
-ensureStore();
-server.listen(PORT, HOST, () => {
-  console.log(`Vadodara Municipal Services running at http://${HOST}:${PORT}`);
-});
+if (require.main === module) {
+  ensureStore();
+  const server = http.createServer(requestHandler);
+  server.listen(PORT, HOST, () => {
+    console.log(`Vadodara Municipal Services running at http://${HOST}:${PORT}`);
+  });
+}
+
+module.exports = requestHandler;
