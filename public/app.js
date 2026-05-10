@@ -39,6 +39,7 @@ const casesKicker = document.querySelector("#casesKicker");
 const casesTitle = document.querySelector("#casesTitle");
 const casesNavLink = document.querySelector("#casesNavLink");
 let currentUser = null;
+let pendingHash = window.location.hash;
 
 const vadodaraAreas = [
   { name: "Akota", ward: "Ward 10", latitude: 22.2939, longitude: 73.1645 },
@@ -96,8 +97,23 @@ function setAuthenticated(user) {
   casesTitle.textContent = isAdmin ? "Manage complaints" : "Complaint status";
   casesNavLink.textContent = isAdmin ? "Manage Cases" : "Status";
   userBadge.textContent = `${user.name} (${user.role})`;
-  loadComplaints().catch((error) => {
-    caseList.innerHTML = `<div class="empty-state">${error.message}</div>`;
+  loadComplaints()
+    .catch((error) => {
+      caseList.innerHTML = `<div class="empty-state">${error.message}</div>`;
+    })
+    .finally(() => scrollToPendingHash());
+}
+
+function scrollToPendingHash() {
+  const hash = pendingHash || window.location.hash;
+  if (!currentUser || !hash) return;
+
+  const target = document.querySelector(hash);
+  if (!target) return;
+
+  requestAnimationFrame(() => {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    pendingHash = "";
   });
 }
 
@@ -425,6 +441,30 @@ document.querySelectorAll("[data-service-card]").forEach((card) => {
     const service = card.dataset.serviceCard;
     form.elements.serviceType.value = service;
     document.querySelector("#report").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
+document.querySelectorAll('a[href^="#"]').forEach((link) => {
+  link.addEventListener("click", (event) => {
+    const hash = link.getAttribute("href");
+    if (!hash || hash === "#") return;
+
+    pendingHash = hash;
+    window.location.hash = hash;
+
+    if (!currentUser) {
+      event.preventDefault();
+      loginMessage.textContent = "Please sign in to view that section.";
+      loginScreen.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    const target = document.querySelector(hash);
+    if (target) {
+      event.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      pendingHash = "";
+    }
   });
 });
 
