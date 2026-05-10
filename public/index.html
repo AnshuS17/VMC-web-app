@@ -7,26 +7,74 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="brand-block">
-        <div class="brand-mark" aria-hidden="true">VM</div>
-        <div>
-          <p class="eyebrow">Vadodara Municipal Corporation</p>
-          <h1>Public Service Response Portal</h1>
-        </div>
+    <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
+      <div class="login-visual">
+        <p class="section-kicker">Vadodara Municipal Corporation</p>
+        <h1 id="loginTitle">Public Service Response Portal</h1>
+        <p>Sign in as a citizen to submit complaints, or as an administrator to manage case progress.</p>
       </div>
-      <nav class="nav-actions" aria-label="Primary">
-        <a href="#report">Report Issue</a>
-        <a href="#dashboard">Dashboard</a>
-        <a href="#cases">Cases</a>
-        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode">
-          <span class="theme-icon" aria-hidden="true">D</span>
-          <span id="themeText">Dark</span>
-        </button>
-      </nav>
-    </header>
+      <form class="login-panel" id="loginForm" novalidate>
+        <div class="section-heading">
+          <p class="section-kicker">Secure access</p>
+          <h2 id="authTitle">Sign in</h2>
+        </div>
+        <div class="role-tabs auth-mode-tabs" role="group" aria-label="Choose sign in or sign up">
+          <button class="role-tab active" type="button" data-auth-mode="signin" aria-pressed="true">Sign in</button>
+          <button class="role-tab" type="button" data-auth-mode="signup" aria-pressed="false">Sign up</button>
+        </div>
+        <div class="role-tabs" id="authRoleTabs" role="group" aria-label="Choose login role">
+          <button class="role-tab active" type="button" data-login-role="user" aria-pressed="true">User</button>
+          <button class="role-tab" type="button" data-login-role="admin" aria-pressed="false">Admin</button>
+        </div>
+        <input type="hidden" name="mode" value="signin" />
+        <input type="hidden" name="role" value="user" />
+        <label class="signup-only" hidden>
+          Full name
+          <input name="name" autocomplete="name" placeholder="Your name" />
+          <span class="field-error" data-auth-error-for="name"></span>
+        </label>
+        <label>
+          Username
+          <input name="username" autocomplete="username" placeholder="user" required />
+          <span class="field-error" data-auth-error-for="username"></span>
+        </label>
+        <label>
+          Password
+          <input name="password" type="password" autocomplete="current-password" placeholder="user123" required />
+          <span class="field-error" data-auth-error-for="password"></span>
+        </label>
+        <button class="submit-button" id="authSubmitButton" type="submit">Sign in</button>
+        <p class="login-message" id="loginMessage" role="status"></p>
+        <div class="login-hints" aria-label="Demo credentials">
+          <span>Existing user: user / user123</span>
+          <span>Existing admin: admin / admin123</span>
+        </div>
+      </form>
+    </section>
 
-    <main>
+    <div class="app-shell" id="appShell" hidden>
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">VM</div>
+          <div>
+            <p class="eyebrow">Vadodara Municipal Corporation</p>
+            <h1>Public Service Response Portal</h1>
+          </div>
+        </div>
+        <nav class="nav-actions" aria-label="Primary">
+          <a href="#report">Report Issue</a>
+          <a class="admin-only" href="#dashboard">Dashboard</a>
+          <a href="#cases" id="casesNavLink">Status</a>
+          <span class="user-badge" id="userBadge"></span>
+          <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode">
+            <span class="theme-icon" aria-hidden="true">D</span>
+            <span id="themeText">Dark</span>
+          </button>
+          <button class="logout-button" id="logoutButton" type="button">Logout</button>
+        </nav>
+      </header>
+
+      <main>
       <section class="hero-shell">
         <div class="hero-copy">
           <p class="section-kicker">Citizen services</p>
@@ -199,7 +247,7 @@
           </form>
         </div>
 
-        <aside class="dashboard-panel" id="dashboard">
+        <aside class="dashboard-panel admin-only" id="dashboard">
           <div class="section-heading">
             <p class="section-kicker">Live overview</p>
             <h2>Service dashboard</h2>
@@ -228,8 +276,8 @@
 
       <section class="cases-section" id="cases">
         <div class="section-heading">
-          <p class="section-kicker">Case management</p>
-          <h2>Complaint tracking</h2>
+          <p class="section-kicker" id="casesKicker">Status tracking</p>
+          <h2 id="casesTitle">Complaint status</h2>
         </div>
 
         <div class="filters">
@@ -271,7 +319,8 @@
 
         <div class="case-list" id="caseList" aria-live="polite"></div>
       </section>
-    </main>
+      </main>
+    </div>
 
     <template id="caseTemplate">
       <article class="case-card">

@@ -22,6 +22,23 @@ const detectLocation = document.querySelector("#detectLocation");
 const mapStatus = document.querySelector("#mapStatus");
 const mapPreview = document.querySelector("#mapPreview");
 const viewButtons = document.querySelectorAll("[data-view]");
+const loginScreen = document.querySelector("#loginScreen");
+const appShell = document.querySelector("#appShell");
+const loginForm = document.querySelector("#loginForm");
+const loginMessage = document.querySelector("#loginMessage");
+const roleTabs = document.querySelectorAll("[data-login-role]");
+const authModeTabs = document.querySelectorAll("[data-auth-mode]");
+const authRoleTabs = document.querySelector("#authRoleTabs");
+const authTitle = document.querySelector("#authTitle");
+const authSubmitButton = document.querySelector("#authSubmitButton");
+const signupOnlyNodes = document.querySelectorAll(".signup-only");
+const userBadge = document.querySelector("#userBadge");
+const logoutButton = document.querySelector("#logoutButton");
+const adminOnlyNodes = document.querySelectorAll(".admin-only");
+const casesKicker = document.querySelector("#casesKicker");
+const casesTitle = document.querySelector("#casesTitle");
+const casesNavLink = document.querySelector("#casesNavLink");
+let currentUser = null;
 
 const vadodaraAreas = [
   { name: "Akota", ward: "Ward 10", latitude: 22.2939, longitude: 73.1645 },
@@ -53,6 +70,80 @@ async function requestJson(url, options = {}) {
     throw error;
   }
   return data;
+}
+
+function setAuthenticated(user) {
+  currentUser = user;
+  loginScreen.hidden = Boolean(user);
+  appShell.hidden = !user;
+
+  if (!user) {
+    userBadge.textContent = "";
+    adminOnlyNodes.forEach((node) => {
+      node.hidden = true;
+    });
+    casesKicker.textContent = "Status tracking";
+    casesTitle.textContent = "Complaint status";
+    casesNavLink.textContent = "Status";
+    return;
+  }
+
+  const isAdmin = user.role === "admin";
+  adminOnlyNodes.forEach((node) => {
+    node.hidden = !isAdmin;
+  });
+  casesKicker.textContent = isAdmin ? "Case management" : "Status tracking";
+  casesTitle.textContent = isAdmin ? "Manage complaints" : "Complaint status";
+  casesNavLink.textContent = isAdmin ? "Manage Cases" : "Status";
+  userBadge.textContent = `${user.name} (${user.role})`;
+  loadComplaints().catch((error) => {
+    caseList.innerHTML = `<div class="empty-state">${error.message}</div>`;
+  });
+}
+
+function setLoginRole(role) {
+  loginForm.elements.role.value = role;
+  const isSignup = loginForm.elements.mode.value === "signup";
+  loginForm.elements.username.placeholder = isSignup ? `${role}-name` : role === "admin" ? "admin" : "user";
+  loginForm.elements.password.placeholder = isSignup ? "At least 6 characters" : role === "admin" ? "admin123" : "user123";
+  roleTabs.forEach((button) => {
+    const isActive = button.dataset.loginRole === role;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+  updateAuthFields();
+}
+
+function setAuthMode(mode) {
+  loginForm.elements.mode.value = mode;
+  if (mode === "signup") {
+    loginForm.elements.role.value = "user";
+  }
+  authTitle.textContent = mode === "signup" ? "Create account" : "Sign in";
+  authSubmitButton.textContent = mode === "signup" ? "Sign up" : "Sign in";
+  loginForm.elements.name.required = mode === "signup";
+  authRoleTabs.hidden = mode === "signup";
+  authModeTabs.forEach((button) => {
+    const isActive = button.dataset.authMode === mode;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+  setAuthErrors();
+  updateAuthFields();
+  setLoginRole(loginForm.elements.role.value);
+}
+
+function updateAuthFields() {
+  const isSignup = loginForm.elements.mode.value === "signup";
+  signupOnlyNodes.forEach((node) => {
+    node.hidden = !isSignup;
+  });
+}
+
+function setAuthErrors(errors = {}) {
+  document.querySelectorAll("[data-auth-error-for]").forEach((node) => {
+    node.textContent = errors[node.dataset.authErrorFor] || "";
+  });
 }
 
 function buildQuery() {
@@ -135,7 +226,11 @@ function renderCases(complaints) {
 
     const select = node.querySelector(".status-select");
     select.value = complaint.status;
-    select.addEventListener("change", () => updateStatus(complaint.id, select.value));
+    if (currentUser && currentUser.role === "admin") {
+      select.addEventListener("change", () => updateStatus(complaint.id, select.value));
+    } else {
+      select.remove();
+    }
 
     caseList.append(node);
   }
@@ -225,6 +320,10 @@ function setErrors(errors = {}) {
 }
 
 async function updateStatus(id, status) {
+  if (!currentUser || currentUser.role !== "admin") {
+    return;
+  }
+
   await requestJson(`/api/complaints/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status })
@@ -256,6 +355,46 @@ form.addEventListener("submit", async (event) => {
     }
     formMessage.textContent = error.message;
   }
+});
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  loginMessage.textContent = "";
+  setAuthErrors();
+
+  const payload = Object.fromEntries(new FormData(loginForm).entries());
+  const endpoint = payload.mode === "signup" ? "/api/signup" : "/api/login";
+  try {
+    const data = await requestJson(endpoint, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    loginForm.reset();
+    setAuthMode("signin");
+    setLoginRole(data.user.role);
+    setAuthenticated(data.user);
+  } catch (error) {
+    if (error.data && error.data.errors) {
+      setAuthErrors(error.data.errors);
+      loginMessage.textContent = "Please fix the highlighted fields.";
+      return;
+    }
+    loginMessage.textContent = error.message;
+  }
+});
+
+authModeTabs.forEach((button) => {
+  button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
+});
+
+roleTabs.forEach((button) => {
+  button.addEventListener("click", () => setLoginRole(button.dataset.loginRole));
+});
+
+logoutButton.addEventListener("click", async () => {
+  await requestJson("/api/logout", { method: "POST" });
+  setAuthenticated(null);
+  loginMessage.textContent = "Logged out successfully.";
 });
 
 themeToggle.addEventListener("click", () => {
@@ -303,6 +442,8 @@ serviceFilter.addEventListener("change", loadComplaints);
 
 applyTheme(localStorage.getItem("vmc-theme") || "light");
 applyCaseView(localStorage.getItem("vmc-case-view") || "list");
-loadComplaints().catch((error) => {
-  caseList.innerHTML = `<div class="empty-state">${error.message}</div>`;
-});
+setAuthMode("signin");
+setLoginRole("user");
+requestJson("/api/session")
+  .then((data) => setAuthenticated(data.user))
+  .catch(() => setAuthenticated(null));
