@@ -120,7 +120,7 @@ function scrollToPendingHash() {
 function setLoginRole(role) {
   loginForm.elements.role.value = role;
   const isSignup = loginForm.elements.mode.value === "signup";
-  loginForm.elements.username.placeholder = isSignup ? `${role}-name` : role === "admin" ? "admin" : "user";
+  loginForm.elements.email.placeholder = isSignup ? `${role}@example.com` : role === "admin" ? "admin@example.com" : "user@example.com";
   loginForm.elements.password.placeholder = isSignup ? "At least 6 characters" : role === "admin" ? "admin123" : "user123";
   roleTabs.forEach((button) => {
     const isActive = button.dataset.loginRole === role;
@@ -379,6 +379,11 @@ loginForm.addEventListener("submit", async (event) => {
   setAuthErrors();
 
   const payload = Object.fromEntries(new FormData(loginForm).entries());
+  if (payload.mode === "signup" && payload.password !== payload.confirmPassword) {
+    setAuthErrors({ confirmPassword: "Passwords do not match" });
+    loginMessage.textContent = "Please fix the highlighted fields.";
+    return;
+  }
   const endpoint = payload.mode === "signup" ? "/api/signup" : "/api/login";
   try {
     const data = await requestJson(endpoint, {

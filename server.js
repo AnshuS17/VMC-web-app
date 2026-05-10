@@ -27,13 +27,13 @@ let databaseReady = false;
 
 const SEED_USERS = [
   {
-    username: process.env.USER_USERNAME || "user",
+    email: process.env.USER_EMAIL || "user@example.com",
     password: process.env.USER_PASSWORD || "user123",
     role: "user",
     name: "Citizen User"
   },
   {
-    username: process.env.ADMIN_USERNAME || "admin",
+    email: process.env.ADMIN_EMAIL || "admin@example.com",
     password: process.env.ADMIN_PASSWORD || "admin123",
     role: "admin",
     name: "VMC Admin"
@@ -151,7 +151,7 @@ function verifyPassword(password, storedHash) {
 
 function publicUser(user) {
   return {
-    username: user.username,
+    email: user.email,
     role: user.role,
     name: user.name
   };
@@ -159,7 +159,7 @@ function publicUser(user) {
 
 function seedUsers() {
   return SEED_USERS.map((user) => ({
-    username: user.username.toLowerCase(),
+    email: user.email.toLowerCase(),
     passwordHash: hashPassword(user.password),
     role: user.role,
     name: user.name,
@@ -169,16 +169,19 @@ function seedUsers() {
 
 function validateAuthPayload(payload, mode) {
   const errors = {};
-  const username = String(payload.username || "").trim().toLowerCase();
+  const email = String(payload.email || "").trim().toLowerCase();
   const password = String(payload.password || "").trim();
   const name = String(payload.name || "").trim();
   const role = String(payload.role || "user").trim().toLowerCase();
 
-  if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
-    errors.username = "Use 3-32 letters, numbers, dots, dashes, or underscores";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = "Enter a valid email address";
   }
   if (password.length < 6) {
     errors.password = "Use at least 6 characters";
+  }
+  if (mode === "signup" && payload.password !== payload.confirmPassword) {
+    errors.confirmPassword = "Passwords do not match";
   }
   if (mode === "signup" && !name) {
     errors.name = "Enter your name";
@@ -190,7 +193,7 @@ function validateAuthPayload(payload, mode) {
     errors.role = "Admin sign up is disabled";
   }
 
-  return { errors, username, password, name, role };
+  return { errors, email, password, name, role };
 }
 
 function readDb() {
@@ -289,14 +292,14 @@ async function ensureMongoDatabase() {
   const usersCollection = await getMongoUsersCollection();
   await collection.createIndex({ id: 1 }, { unique: true });
   await collection.createIndex({ createdAt: -1 });
-  await usersCollection.createIndex({ username: 1 }, { unique: true });
+  await usersCollection.createIndex({ email: 1 }, { unique: true });
   const count = await collection.countDocuments();
   if (count === 0) {
     await collection.insertMany(seedComplaints().map((complaint) => ({ _id: complaint.id, ...complaint })));
   }
   const userCount = await usersCollection.countDocuments();
   if (userCount === 0) {
-    await usersCollection.insertMany(seedUsers().map((user) => ({ _id: user.username, ...user })));
+    await usersCollection.insertMany(seedUsers().map((user) => ({ _id: user.email, ...user })));
   }
 
   mongoReady = true;
@@ -326,7 +329,7 @@ async function ensureDatabase() {
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
+      email TEXT PRIMARY KEY,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL,
       name TEXT NOT NULL,
@@ -353,11 +356,11 @@ async function ensureDatabase() {
 async function insertPostgresUser(user) {
   await getPgPool().query(
     `
-      INSERT INTO users (username, password_hash, role, name, created_at)
+      INSERT INTO users (email, password_hash, role, name, created_at)
       VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (username) DO NOTHING
+      ON CONFLICT (email) DO NOTHING
     `,
-    [user.username, user.passwordHash, user.role, user.name, user.createdAt]
+    [user.email, user.passwordHash, user.role, user.name, user.createdAt]
   );
 }
 
@@ -467,38 +470,38 @@ async function updateComplaintStatus(id, status) {
   return result.rows[0] ? normalizeComplaint(result.rows[0]) : null;
 }
 
-async function findUser(username) {
-  const normalized = String(username || "").trim().toLowerCase();
+async function findUser(email) {
+  const normalized = String(email || "").trim().toLowerCase();
 
   if (useMongo()) {
     await ensureMongoDatabase();
-    const user = await (await getMongoUsersCollection()).findOne({ username: normalized });
+    const user = await (await getMongoUsersCollection()).findOne({ email: normalized });
     return user ? publicUser(user) : null;
   }
 
   if (!usePostgres()) {
-    const user = readDb().users.find((item) => item.username === normalized);
+    const user = readDb().users.find((item) => item.email === normalized);
     return user ? publicUser(user) : null;
   }
 
   await ensureDatabase();
-  const result = await getPgPool().query("SELECT username, role, name FROM users WHERE username = $1", [normalized]);
+  const result = await getPgPool().query("SELECT email, role, name FROM users WHERE email = $1", [normalized]);
   return result.rows[0] ? publicUser(result.rows[0]) : null;
 }
 
-async function authenticateUser(username, password) {
-  const normalized = String(username || "").trim().toLowerCase();
+async function authenticateUser(email, password) {
+  const normalized = String(email || "").trim().toLowerCase();
   let user;
 
   if (useMongo()) {
     await ensureMongoDatabase();
-    user = await (await getMongoUsersCollection()).findOne({ username: normalized });
+    user = await (await getMongoUsersCollection()).findOne({ email: normalized });
   } else if (!usePostgres()) {
-    user = readDb().users.find((item) => item.username === normalized);
+    user = readDb().users.find((item) => item.email === normalized);
   } else {
     await ensureDatabase();
     const result = await getPgPool().query(
-      "SELECT username, password_hash AS \"passwordHash\", role, name FROM users WHERE username = $1",
+      "SELECT email, password_hash AS \"passwordHash\", role, name FROM users WHERE email = $1",
       [normalized]
     );
     user = result.rows[0];
@@ -511,16 +514,16 @@ async function authenticateUser(username, password) {
   return publicUser(user);
 }
 
-async function createUserAccount({ username, password, name, role }) {
-  const existing = await findUser(username);
+async function createUserAccount({ email, password, name, role }) {
+  const existing = await findUser(email);
   if (existing) {
-    const error = new Error("Username is already registered");
+    const error = new Error("Email is already registered");
     error.statusCode = 409;
     throw error;
   }
 
   const user = {
-    username,
+    email,
     passwordHash: hashPassword(password),
     role,
     name,
@@ -529,7 +532,7 @@ async function createUserAccount({ username, password, name, role }) {
 
   if (useMongo()) {
     await ensureMongoDatabase();
-    await (await getMongoUsersCollection()).insertOne({ _id: user.username, ...user });
+    await (await getMongoUsersCollection()).insertOne({ _id: user.email, ...user });
     return publicUser(user);
   }
 
@@ -572,7 +575,7 @@ function sign(value) {
 
 function createSession(user) {
   const payload = JSON.stringify({
-    username: user.username,
+    email: user.email,
     role: user.role,
     name: user.name,
     exp: Date.now() + 1000 * 60 * 60 * 8
@@ -610,7 +613,7 @@ function verifySession(req) {
     const session = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
     if (!session.exp || session.exp < Date.now()) return null;
     return {
-      username: session.username,
+      email: session.email,
       role: session.role,
       name: session.name
     };
@@ -748,13 +751,13 @@ async function handleApi(req, res, url) {
   if (url.pathname === "/api/login" && req.method === "POST") {
     try {
       const payload = await readBody(req);
-      const { errors, username, password } = validateAuthPayload(payload, "signin");
+      const { errors, email, password } = validateAuthPayload(payload, "signin");
       if (Object.keys(errors).length) {
         sendJson(res, 400, { errors });
         return;
       }
 
-      const user = await authenticateUser(username, password);
+      const user = await authenticateUser(email, password);
 
       if (!user) {
         sendJson(res, 401, { error: "Invalid login details" });
@@ -771,13 +774,13 @@ async function handleApi(req, res, url) {
   if (url.pathname === "/api/signup" && req.method === "POST") {
     try {
       const payload = await readBody(req);
-      const { errors, username, password, name, role } = validateAuthPayload(payload, "signup");
+      const { errors, email, password, name, role } = validateAuthPayload(payload, "signup");
       if (Object.keys(errors).length) {
         sendJson(res, 400, { errors });
         return;
       }
 
-      const user = await createUserAccount({ username, password, name, role });
+      const user = await createUserAccount({ email, password, name, role });
       sendJsonWithHeaders(res, 201, { user }, { "Set-Cookie": sessionCookie(createSession(user)) });
     } catch (error) {
       sendJson(res, error.statusCode || 400, { error: error.message });

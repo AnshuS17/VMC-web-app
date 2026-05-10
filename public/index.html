@@ -48,21 +48,23 @@
           <span class="field-error" data-auth-error-for="name"></span>
         </label>
         <label>
-          Username
-          <input name="username" autocomplete="username" placeholder="user" required />
-          <span class="field-error" data-auth-error-for="username"></span>
+          Email address
+          <input name="email" type="email" autocomplete="email" placeholder="user@example.com" required />
+          <span class="field-error" data-auth-error-for="email"></span>
         </label>
         <label>
           Password
           <input name="password" type="password" autocomplete="current-password" placeholder="user123" required />
           <span class="field-error" data-auth-error-for="password"></span>
         </label>
+        <label class="signup-only" hidden>
+          Confirm Password
+          <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm your password" />
+          <span class="field-error" data-auth-error-for="confirmPassword"></span>
+        </label>
         <button class="submit-button" id="authSubmitButton" type="submit">Sign in</button>
         <p class="login-message" id="loginMessage" role="status"></p>
-        <div class="login-hints" aria-label="Demo credentials">
-          <span>Existing user: user / user123</span>
-          <span>Existing admin: admin / admin123</span>
-        </div>
+
       </form>
     </section>
 
