@@ -484,8 +484,8 @@ main {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 800px);
+  justify-content: center;
   margin-top: 32px;
 }
 
@@ -494,13 +494,40 @@ main {
 .cases-section {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 12px 34px rgba(24, 33, 44, 0.08);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
 }
 
-.form-panel,
 .dashboard-panel {
+  margin-top: 32px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.form-panel {
   padding: clamp(20px, 3vw, 32px);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+:root[data-theme="dark"] .glass-card {
+  background: rgba(20, 36, 43, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
 .section-heading h2 {
@@ -628,57 +655,53 @@ textarea:focus {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .stat {
-  padding: 16px;
-  background: var(--surface-soft);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--teal);
+  margin-bottom: 12px;
 }
 
 .stat span {
-  display: block;
   color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 800;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat strong {
-  display: block;
-  margin-top: 6px;
-  font-size: 2rem;
+  margin-top: 8px;
+  font-size: 2.4rem;
   line-height: 1;
+  color: var(--ink);
 }
 
-.type-breakdown {
+.charts-grid {
   display: grid;
-  gap: 10px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
 }
 
-.type-row {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr) 28px;
+.chart-container {
+  padding: 24px;
+  min-height: 350px;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-
-.bar-track {
-  height: 9px;
-  overflow: hidden;
-  background: var(--line);
-  border-radius: 999px;
-}
-
-.bar-fill {
-  height: 100%;
-  background: var(--green);
+  justify-content: center;
 }
 
 .cases-section {

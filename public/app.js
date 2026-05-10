@@ -35,11 +35,14 @@ const signupOnlyNodes = document.querySelectorAll(".signup-only");
 const userBadge = document.querySelector("#userBadge");
 const logoutButton = document.querySelector("#logoutButton");
 const adminOnlyNodes = document.querySelectorAll(".admin-only");
+const citizenOnlyNodes = document.querySelectorAll(".citizen-only");
 const casesKicker = document.querySelector("#casesKicker");
 const casesTitle = document.querySelector("#casesTitle");
 const casesNavLink = document.querySelector("#casesNavLink");
 let currentUser = null;
 let pendingHash = window.location.hash;
+let statusChartInstance = null;
+let typeChartInstance = null;
 
 const vadodaraAreas = [
   { name: "Akota", ward: "Ward 10", latitude: 22.2939, longitude: 73.1645 },
@@ -92,6 +95,9 @@ function setAuthenticated(user) {
   const isAdmin = user.role === "admin";
   adminOnlyNodes.forEach((node) => {
     node.hidden = !isAdmin;
+  });
+  citizenOnlyNodes.forEach((node) => {
+    node.hidden = isAdmin;
   });
   casesKicker.textContent = isAdmin ? "Case management" : "Status tracking";
   casesTitle.textContent = isAdmin ? "Manage complaints" : "Complaint status";
@@ -184,23 +190,72 @@ function renderStats(stats) {
   document.querySelector("#statProgress").textContent = stats.inProgress;
   document.querySelector("#statResolved").textContent = stats.resolved;
 
-  const breakdown = document.querySelector("#typeBreakdown");
-  breakdown.innerHTML = "";
-  const entries = Object.entries(serviceLabels).map(([key, label]) => {
-    return [key, label, stats.byType[key] || 0];
+  if (currentUser && currentUser.role === "admin" && window.Chart) {
+    renderCharts(stats);
+  }
+}
+
+function renderCharts(stats) {
+  const isDark = document.documentElement.dataset.theme === "dark";
+  const textColor = isDark ? "#edf4f2" : "#18212c";
+  const gridColor = isDark ? "#2f4650" : "#d9e0e8";
+  const colors = { open: "#f4b740", progress: "#2f64b1", resolved: "#167a53", bar: "#0f6f78" };
+
+  const statusCtx = document.getElementById("statusChart");
+  if (statusChartInstance) {
+    statusChartInstance.destroy();
+  }
+  statusChartInstance = new Chart(statusCtx, {
+    type: "doughnut",
+    data: {
+      labels: ["Open", "In Progress", "Resolved"],
+      datasets: [{
+        data: [stats.open, stats.inProgress, stats.resolved],
+        backgroundColor: [colors.open, colors.progress, colors.resolved],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: textColor, padding: 20 } },
+        title: { display: true, text: 'Complaints by Status', color: textColor, font: { size: 16 } }
+      }
+    }
   });
 
-  for (const [key, label, count] of entries) {
-    const row = document.createElement("div");
-    row.className = "type-row";
-    const percent = stats.total ? Math.round((count / stats.total) * 100) : 0;
-    row.innerHTML = `
-      <span>${label}</span>
-      <span class="bar-track"><span class="bar-fill" style="width: ${percent}%"></span></span>
-      <strong>${count}</strong>
-    `;
-    breakdown.append(row);
+  const typeCtx = document.getElementById("typeChart");
+  if (typeChartInstance) {
+    typeChartInstance.destroy();
   }
+  const typeLabels = Object.values(serviceLabels);
+  const typeData = Object.keys(serviceLabels).map((key) => stats.byType[key] || 0);
+
+  typeChartInstance = new Chart(typeCtx, {
+    type: "bar",
+    data: {
+      labels: typeLabels,
+      datasets: [{
+        label: "Complaints",
+        data: typeData,
+        backgroundColor: colors.bar,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { ticks: { color: textColor, precision: 0 }, grid: { color: gridColor } },
+        x: { ticks: { color: textColor }, grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Complaints by Service Type', color: textColor, font: { size: 16 } }
+      }
+    }
+  });
 }
 
 function renderCases(complaints) {
@@ -421,6 +476,9 @@ logoutButton.addEventListener("click", async () => {
 themeToggle.addEventListener("click", () => {
   const current = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   applyTheme(current);
+  if (currentUser && currentUser.role === "admin") {
+    loadComplaints(); // Reload complaints to redraw charts with new theme colors
+  }
 });
 
 detectLocation.addEventListener("click", () => {
