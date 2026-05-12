@@ -55,12 +55,18 @@
         </label>
         <label>
           Password
-          <input name="password" type="password" autocomplete="current-password" placeholder="user123" required />
+          <div class="password-container">
+            <input name="password" type="password" autocomplete="current-password" placeholder="user123" required />
+            <button class="password-toggle" type="button" aria-label="Show password">👁️</button>
+          </div>
           <span class="field-error" data-auth-error-for="password"></span>
         </label>
         <label class="signup-only" hidden>
           Confirm Password
-          <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm your password" />
+          <div class="password-container">
+            <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm your password" />
+            <button class="password-toggle" type="button" aria-label="Show password">👁️</button>
+          </div>
           <span class="field-error" data-auth-error-for="confirmPassword"></span>
         </label>
         <button class="submit-button" id="authSubmitButton" type="submit">Sign in</button>

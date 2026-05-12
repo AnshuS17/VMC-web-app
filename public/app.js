@@ -327,7 +327,7 @@ function applyTheme(theme) {
   localStorage.setItem("vmc-theme", theme);
   const isDark = theme === "dark";
   themeText.textContent = isDark ? "Light" : "Dark";
-  themeIcon.textContent = isDark ? "L" : "D";
+  themeIcon.textContent = isDark ? "Light" : "Dark";
   themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
 }
 
@@ -479,6 +479,18 @@ themeToggle.addEventListener("click", () => {
   if (currentUser && currentUser.role === "admin") {
     loadComplaints(); // Reload complaints to redraw charts with new theme colors
   }
+});
+
+// Password toggle functionality
+const passwordToggles = document.querySelectorAll(".password-toggle");
+passwordToggles.forEach((toggle) => {
+  toggle.addEventListener("click", (event) => {
+    event.preventDefault();
+    const input = toggle.parentElement.querySelector("input");
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    toggle.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+  });
 });
 
 detectLocation.addEventListener("click", () => {

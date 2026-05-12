@@ -555,6 +555,41 @@ label {
   font-weight: 800;
 }
 
+.password-container {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.password-container input {
+  margin: 0;
+}
+
+.password-toggle {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  transition: background-color 0.2s;
+}
+
+.password-toggle:hover {
+  background: var(--surface-soft);
+}
+
+.password-toggle:active {
+  background: var(--line);
+}
+
 input,
 select,
 textarea {
