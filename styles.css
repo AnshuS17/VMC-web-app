@@ -228,7 +228,7 @@ h1 {
   display: inline-flex;
   min-height: 38px;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -237,6 +237,36 @@ h1 {
   font: inherit;
   font-weight: 800;
   cursor: pointer;
+}
+
+.theme-switch {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 180ms ease;
+}
+
+.theme-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 2px 6px rgba(24, 33, 44, 0.22);
+  transition: transform 180ms ease;
+}
+
+:root[data-theme="dark"] .theme-switch {
+  background: var(--green);
+}
+
+:root[data-theme="dark"] .theme-switch-thumb {
+  transform: translateX(18px);
 }
 
 .user-badge {
@@ -262,13 +292,6 @@ h1 {
   font: inherit;
   font-weight: 900;
   cursor: pointer;
-}
-
-.theme-icon {
-  display: inline-grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
 }
 
 main {

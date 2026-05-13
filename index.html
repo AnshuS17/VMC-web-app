@@ -50,13 +50,13 @@
         </label>
         <label>
           Email address
-          <input name="email" type="email" autocomplete="email" placeholder="user@example.com" required />
+          <input name="email" type="email" autocomplete="email" placeholder="Email address" required />
           <span class="field-error" data-auth-error-for="email"></span>
         </label>
         <label>
           Password
           <div class="password-container">
-            <input name="password" type="password" autocomplete="current-password" placeholder="user123" required />
+            <input name="password" type="password" autocomplete="current-password" placeholder="Password" required />
             <button class="password-toggle" type="button" aria-label="Show password">👁️</button>
           </div>
           <span class="field-error" data-auth-error-for="password"></span>
@@ -71,10 +71,6 @@
         </label>
         <button class="submit-button" id="authSubmitButton" type="submit">Sign in</button>
         <p class="login-message" id="loginMessage" role="status"></p>
-        <div class="login-hints" aria-label="Demo credentials">
-          <span>Existing user: user@example.com / user123</span>
-          <span>Existing admin: admin@example.com / admin123</span>
-        </div>
       </form>
     </section>
 
@@ -93,7 +89,9 @@
           <a href="#cases" id="casesNavLink">Status</a>
           <span class="user-badge" id="userBadge"></span>
           <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode">
-            <span class="theme-icon" aria-hidden="true">D</span>
+            <span class="theme-switch" aria-hidden="true">
+              <span class="theme-switch-thumb"></span>
+            </span>
             <span id="themeText">Dark</span>
           </button>
           <button class="logout-button" id="logoutButton" type="button">Logout</button>
