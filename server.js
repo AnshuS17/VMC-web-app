@@ -285,14 +285,23 @@ async function getMongoUsersCollection() {
   return mongoClient.db(MONGODB_DB).collection("users");
 }
 
+async function ensureMongoIndex(collection, key, options = {}) {
+  const keySignature = JSON.stringify(key);
+  const existingIndexes = await collection.indexes();
+  const hasSameKey = existingIndexes.some((index) => JSON.stringify(index.key) === keySignature);
+  if (!hasSameKey) {
+    await collection.createIndex(key, options);
+  }
+}
+
 async function ensureMongoDatabase() {
   if (!useMongo() || mongoReady) return;
 
   const collection = await getMongoCollection();
   const usersCollection = await getMongoUsersCollection();
-  await collection.createIndex({ id: 1 }, { unique: true });
-  await collection.createIndex({ createdAt: -1 });
-  await usersCollection.createIndex({ email: 1 }, { unique: true });
+  await ensureMongoIndex(collection, { id: 1 }, { unique: true });
+  await ensureMongoIndex(collection, { createdAt: -1 });
+  await ensureMongoIndex(usersCollection, { email: 1 }, { unique: true });
   const count = await collection.countDocuments();
   if (count === 0) {
     await collection.insertMany(seedComplaints().map((complaint) => ({ _id: complaint.id, ...complaint })));
@@ -509,6 +518,13 @@ async function authenticateUser(email, password) {
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return null;
+  }
+
+  if (useMongo()) {
+    await (await getMongoUsersCollection()).updateOne(
+      { email: normalized },
+      { $set: { lastLoginAt: new Date().toISOString() } }
+    );
   }
 
   return publicUser(user);

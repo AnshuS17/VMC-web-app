@@ -17,7 +17,6 @@ const statusFilter = document.querySelector("#statusFilter");
 const serviceFilter = document.querySelector("#serviceFilter");
 const themeToggle = document.querySelector("#themeToggle");
 const themeText = document.querySelector("#themeText");
-const themeIcon = document.querySelector(".theme-icon");
 const detectLocation = document.querySelector("#detectLocation");
 const mapStatus = document.querySelector("#mapStatus");
 const mapPreview = document.querySelector("#mapPreview");
@@ -126,8 +125,8 @@ function scrollToPendingHash() {
 function setLoginRole(role) {
   loginForm.elements.role.value = role;
   const isSignup = loginForm.elements.mode.value === "signup";
-  loginForm.elements.email.placeholder = isSignup ? `${role}@example.com` : role === "admin" ? "admin@example.com" : "user@example.com";
-  loginForm.elements.password.placeholder = isSignup ? "At least 6 characters" : role === "admin" ? "admin123" : "user123";
+  loginForm.elements.email.placeholder = "Email address";
+  loginForm.elements.password.placeholder = isSignup ? "At least 6 characters" : "Password";
   roleTabs.forEach((button) => {
     const isActive = button.dataset.loginRole === role;
     button.classList.toggle("active", isActive);
@@ -327,7 +326,6 @@ function applyTheme(theme) {
   localStorage.setItem("vmc-theme", theme);
   const isDark = theme === "dark";
   themeText.textContent = isDark ? "Light" : "Dark";
-  themeIcon.textContent = isDark ? "Light" : "Dark";
   themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
 }
 
