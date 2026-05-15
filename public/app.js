@@ -57,7 +57,240 @@ const vadodaraAreas = [
   { name: "Makarpura", ward: "Ward 1", latitude: 22.2425, longitude: 73.1945 }
 ];
 
+const demoUsers = [
+  { email: "user@example.com", password: "user123", role: "user", name: "Citizen User" },
+  { email: "admin@example.com", password: "admin123", role: "admin", name: "VMC Admin" }
+];
+const staticStoreKey = "vmc-static-store";
+const staticSessionKey = "vmc-static-session";
+const isStaticHost = window.location.hostname.endsWith("github.io") || window.location.protocol === "file:";
+
+function seedStaticComplaints() {
+  const now = Date.now();
+  return [
+    {
+      id: "VMC-1001",
+      serviceType: "garbage",
+      title: "Garbage pile near Akota Garden",
+      description: "Garbage bags have been left near the footpath for two days.",
+      location: "Akota Garden Road",
+      ward: "Ward 10",
+      citizenName: "M. Patel",
+      phone: "9876543210",
+      latitude: 22.2939,
+      longitude: 73.1645,
+      status: "In Progress",
+      priority: "Medium",
+      createdAt: new Date(now - 1000 * 60 * 60 * 7).toISOString(),
+      updatedAt: new Date(now - 1000 * 60 * 60 * 2).toISOString()
+    },
+    {
+      id: "VMC-1002",
+      serviceType: "waterlogging",
+      title: "Water logging at Alkapuri underpass",
+      description: "Traffic is slowing because rain water is not draining.",
+      location: "Alkapuri Underpass",
+      ward: "Ward 7",
+      citizenName: "A. Shah",
+      phone: "9123456780",
+      latitude: 22.3122,
+      longitude: 73.1687,
+      status: "Open",
+      priority: "High",
+      createdAt: new Date(now - 1000 * 60 * 42).toISOString(),
+      updatedAt: new Date(now - 1000 * 60 * 42).toISOString()
+    },
+    {
+      id: "VMC-1003",
+      serviceType: "potholes",
+      title: "Potholes on Gotri main road",
+      description: "Two large potholes are causing sudden braking during peak hours.",
+      location: "Gotri Main Road",
+      ward: "Ward 11",
+      citizenName: "R. Desai",
+      phone: "9988776655",
+      latitude: 22.3128,
+      longitude: 73.1348,
+      status: "Resolved",
+      priority: "Medium",
+      createdAt: new Date(now - 1000 * 60 * 60 * 30).toISOString(),
+      updatedAt: new Date(now - 1000 * 60 * 60 * 5).toISOString()
+    }
+  ];
+}
+
+function readStaticStore() {
+  const saved = JSON.parse(localStorage.getItem(staticStoreKey) || "null");
+  if (saved && Array.isArray(saved.complaints) && Array.isArray(saved.users)) {
+    return saved;
+  }
+
+  const store = { complaints: seedStaticComplaints(), users: demoUsers };
+  writeStaticStore(store);
+  return store;
+}
+
+function writeStaticStore(store) {
+  localStorage.setItem(staticStoreKey, JSON.stringify(store));
+}
+
+function publicStaticUser(user) {
+  return { email: user.email, role: user.role, name: user.name };
+}
+
+function staticError(message, data = {}) {
+  const error = new Error(message);
+  error.data = data;
+  throw error;
+}
+
+function validateStaticAuth(payload) {
+  const errors = {};
+  const email = String(payload.email || "").trim().toLowerCase();
+  const password = String(payload.password || "").trim();
+  const name = String(payload.name || "").trim();
+  const role = String(payload.role || "user").trim().toLowerCase();
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email address";
+  if (password.length < 6) errors.password = "Use at least 6 characters";
+  if (payload.mode === "signup" && payload.password !== payload.confirmPassword) errors.confirmPassword = "Passwords do not match";
+  if (payload.mode === "signup" && !name) errors.name = "Enter your name";
+  if (!["user", "admin"].includes(role)) errors.role = "Choose a valid account type";
+  if (payload.mode === "signup" && role === "admin") errors.role = "Admin sign up is disabled";
+
+  return { errors, email, password, name, role };
+}
+
+function validateStaticComplaint(payload) {
+  const errors = {};
+  const requiredFields = ["serviceType", "title", "description", "location", "ward", "citizenName", "phone"];
+  requiredFields.forEach((field) => {
+    if (!String(payload[field] || "").trim()) errors[field] = "This field is required";
+  });
+  if (payload.serviceType && !serviceLabels[payload.serviceType]) errors.serviceType = "Choose a valid service";
+  if (payload.phone && !/^[0-9+\-\s]{8,15}$/.test(payload.phone)) errors.phone = "Enter a valid phone number";
+  return errors;
+}
+
+function priorityForService(serviceType) {
+  if (["electricity", "waterlogging"].includes(serviceType)) return "High";
+  if (["garbage", "potholes", "drainage"].includes(serviceType)) return "Medium";
+  return "Low";
+}
+
+function buildStats(complaints) {
+  const stats = { total: complaints.length, open: 0, inProgress: 0, resolved: 0, byType: {} };
+  Object.keys(serviceLabels).forEach((type) => {
+    stats.byType[type] = 0;
+  });
+  complaints.forEach((complaint) => {
+    if (complaint.status === "Open") stats.open += 1;
+    if (complaint.status === "In Progress") stats.inProgress += 1;
+    if (complaint.status === "Resolved") stats.resolved += 1;
+    stats.byType[complaint.serviceType] = (stats.byType[complaint.serviceType] || 0) + 1;
+  });
+  return stats;
+}
+
+async function requestStaticJson(url, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const parsedUrl = new URL(url, window.location.origin);
+  const store = readStaticStore();
+  const sessionEmail = localStorage.getItem(staticSessionKey);
+  const user = store.users.find((item) => item.email === sessionEmail);
+
+  if (parsedUrl.pathname === "/api/session" && method === "GET") {
+    if (!user) staticError("Not signed in");
+    return { user: publicStaticUser(user) };
+  }
+
+  if (parsedUrl.pathname === "/api/login" && method === "POST") {
+    const payload = JSON.parse(options.body || "{}");
+    const match = store.users.find((item) => item.email === String(payload.email || "").toLowerCase() && item.password === payload.password && item.role === payload.role);
+    if (!match) staticError("Invalid email, password, or role.");
+    localStorage.setItem(staticSessionKey, match.email);
+    return { user: publicStaticUser(match) };
+  }
+
+  if (parsedUrl.pathname === "/api/signup" && method === "POST") {
+    const payload = JSON.parse(options.body || "{}");
+    const { errors, email, password, name, role } = validateStaticAuth(payload);
+    if (Object.keys(errors).length) staticError("Validation failed", { errors });
+    if (store.users.some((item) => item.email === email)) staticError("An account already exists for this email.");
+    const newUser = { email, password, role, name };
+    store.users.push(newUser);
+    writeStaticStore(store);
+    localStorage.setItem(staticSessionKey, email);
+    return { user: publicStaticUser(newUser) };
+  }
+
+  if (parsedUrl.pathname === "/api/logout" && method === "POST") {
+    localStorage.removeItem(staticSessionKey);
+    return { ok: true };
+  }
+
+  if (parsedUrl.pathname === "/api/complaints" && method === "GET") {
+    if (!user) staticError("Please sign in to continue.");
+    const status = parsedUrl.searchParams.get("status") || "all";
+    const serviceType = parsedUrl.searchParams.get("serviceType") || "all";
+    const query = (parsedUrl.searchParams.get("q") || "").toLowerCase();
+    const complaints = store.complaints.filter((complaint) => {
+      const matchesStatus = status === "all" || complaint.status === status;
+      const matchesType = serviceType === "all" || complaint.serviceType === serviceType;
+      const searchable = [complaint.title, complaint.description, complaint.location, complaint.ward, complaint.citizenName, complaint.id].join(" ").toLowerCase();
+      return matchesStatus && matchesType && (!query || searchable.includes(query));
+    });
+    return { complaints, stats: buildStats(store.complaints) };
+  }
+
+  if (parsedUrl.pathname === "/api/complaints" && method === "POST") {
+    if (!user) staticError("Please sign in to continue.");
+    const payload = JSON.parse(options.body || "{}");
+    const errors = validateStaticComplaint(payload);
+    if (Object.keys(errors).length) staticError("Validation failed", { errors });
+    const now = new Date().toISOString();
+    const complaint = {
+      id: `VMC-${1001 + store.complaints.length}`,
+      serviceType: payload.serviceType,
+      title: payload.title.trim(),
+      description: payload.description.trim(),
+      location: payload.location.trim(),
+      ward: payload.ward.trim(),
+      citizenName: payload.citizenName.trim(),
+      phone: payload.phone.trim(),
+      latitude: payload.latitude ? Number(payload.latitude) : null,
+      longitude: payload.longitude ? Number(payload.longitude) : null,
+      status: "Open",
+      priority: priorityForService(payload.serviceType),
+      createdAt: now,
+      updatedAt: now
+    };
+    store.complaints.unshift(complaint);
+    writeStaticStore(store);
+    return { complaint };
+  }
+
+  const statusMatch = parsedUrl.pathname.match(/^\/api\/complaints\/([^/]+)\/status$/);
+  if (statusMatch && method === "PATCH") {
+    if (!user || user.role !== "admin") staticError("Only admins can update complaint status.");
+    const payload = JSON.parse(options.body || "{}");
+    const complaint = store.complaints.find((item) => item.id === statusMatch[1]);
+    if (!complaint) staticError("Complaint not found.");
+    if (!["Open", "In Progress", "Resolved"].includes(payload.status)) staticError("Choose a valid status.");
+    complaint.status = payload.status;
+    complaint.updatedAt = new Date().toISOString();
+    writeStaticStore(store);
+    return { complaint };
+  }
+
+  staticError("This action is not available on the static demo.");
+}
+
 async function requestJson(url, options = {}) {
+  if (isStaticHost) {
+    return requestStaticJson(url, options);
+  }
+
   const response = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
