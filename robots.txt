@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://build-a-vadodara-municipalty-web-ap.vercel.app/sitemap.xml
+Sitemap: https://anshus17.github.io/VMC-web-app/sitemap.xml
