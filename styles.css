@@ -66,8 +66,8 @@ a {
   min-height: 100vh;
   background:
     linear-gradient(110deg, rgba(16, 82, 87, 0.94), rgba(22, 122, 83, 0.82)),
-    url("https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1800&q=80");
-  background-position: center;
+    url("https://commons.wikimedia.org/wiki/Special:FilePath/Laxmi%20Vilas%20Palace%20-%20Vadodara.jpg?width=1800");
+  background-position: center 1%;
   background-size: cover;
 }
 
@@ -307,8 +307,8 @@ main {
   padding: clamp(26px, 5vw, 62px);
   background:
     linear-gradient(110deg, rgba(16, 82, 87, 0.95), rgba(22, 122, 83, 0.86)),
-    url("https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1800&q=80");
-  background-position: center;
+    url("https://commons.wikimedia.org/wiki/Special:FilePath/Laxmi%20Vilas%20Palace%20-%20Vadodara.jpg?width=1800");
+  background-position: center 1%;
   background-size: cover;
   color: white;
 }
