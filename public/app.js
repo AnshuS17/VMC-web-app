@@ -44,6 +44,48 @@ let pendingHash = window.location.hash;
 let statusChartInstance = null;
 let typeChartInstance = null;
 
+function initCursorGlow() {
+  const supportsFinePointer = window.matchMedia("(pointer: fine)").matches;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!supportsFinePointer || prefersReducedMotion) return;
+
+  const glow = document.createElement("div");
+  glow.className = "cursor-glow";
+  glow.setAttribute("aria-hidden", "true");
+  document.body.append(glow);
+
+  let targetX = -500;
+  let targetY = -500;
+  let currentX = targetX;
+  let currentY = targetY;
+  let frameRequested = false;
+
+  function render() {
+    currentX += (targetX - currentX) * 0.18;
+    currentY += (targetY - currentY) * 0.18;
+    glow.style.setProperty("--cursor-x", `${currentX}px`);
+    glow.style.setProperty("--cursor-y", `${currentY}px`);
+    frameRequested = Math.abs(targetX - currentX) > 0.2 || Math.abs(targetY - currentY) > 0.2;
+    if (frameRequested) {
+      requestAnimationFrame(render);
+    }
+  }
+
+  window.addEventListener("pointermove", (event) => {
+    targetX = event.clientX;
+    targetY = event.clientY;
+    document.body.classList.add("cursor-active");
+    if (!frameRequested) {
+      frameRequested = true;
+      requestAnimationFrame(render);
+    }
+  }, { passive: true });
+
+  window.addEventListener("pointerleave", () => {
+    document.body.classList.remove("cursor-active");
+  });
+}
+
 const vadodaraAreas = [
   { name: "Akota", ward: "Ward 10", latitude: 22.2939, longitude: 73.1645 },
   { name: "Alkapuri", ward: "Ward 7", latitude: 22.3122, longitude: 73.1687 },
@@ -844,6 +886,7 @@ serviceFilter.addEventListener("change", loadComplaints);
 
 applyTheme(localStorage.getItem("vmc-theme") || "light");
 applyCaseView(localStorage.getItem("vmc-case-view") || "list");
+initCursorGlow();
 setAuthMode("signin");
 setLoginRole("user");
 requestJson("/api/session")
