@@ -22,42 +22,113 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
-    <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
-      <div class="login-visual">
-        <p class="section-kicker">Vadodara Municipal Corporation</p>
-        <h1 id="loginTitle">Public Service Response Portal</h1>
-        <p>Sign in as a citizen to submit complaints, or as an administrator to manage case progress.</p>
-      </div>
+    <section class="landing-screen" id="landingScreen" aria-labelledby="landingTitle">
+      <header class="landing-nav" aria-label="Landing navigation">
+        <a class="landing-brand" href="#">
+          <span class="brand-mark" aria-hidden="true">VMC</span>
+          <span>
+            <strong>Vadodara Municipal Corporation</strong>
+            <small>Citizen Complaint Management</small>
+          </span>
+        </a>
+      </header>
+
+      <main class="landing-main">
+        <section class="landing-hero">
+          <div class="landing-copy">
+            <p class="section-kicker">Smart civic services for Vadodara</p>
+            <h1 id="landingTitle">Report, track, and resolve municipal complaints with confidence.</h1>
+            <p>
+              A professional public service portal for Vadodara citizens to register civic issues,
+              follow status updates, and help municipal teams respond faster across wards.
+            </p>
+            <div class="hero-actions">
+              <a class="button primary" href="#login">Login to Portal</a>
+              <a class="button secondary" href="#signup">Create Citizen Account</a>
+            </div>
+          </div>
+          <aside class="hero-info-card" aria-label="Portal highlights">
+            <span class="info-badge">VMC Response Desk</span>
+            <strong>24x7 complaint intake</strong>
+            <p>Garbage, water logging, drainage, streetlights, potholes, electricity, and other civic services.</p>
+            <div class="hero-metrics" aria-label="Service coverage">
+              <span><strong>12</strong> Wards</span>
+              <span><strong>7</strong> Services</span>
+              <span><strong>Live</strong> Status</span>
+            </div>
+          </aside>
+        </section>
+
+        <section class="landing-section" aria-labelledby="servicesTitle">
+          <div class="section-heading">
+            <p class="section-kicker">Municipal services</p>
+            <h2 id="servicesTitle">Built for everyday civic response</h2>
+          </div>
+          <div class="landing-feature-grid">
+            <article>
+              <span>01</span>
+              <h3>Complaint registration</h3>
+              <p>Submit location, ward, service type, and contact details through a guided citizen form.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>Status tracking</h3>
+              <p>Track open, in-progress, and resolved complaints with clear case references.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>Admin case handling</h3>
+              <p>Municipal staff can review complaints, prioritize service issues, and update progress.</p>
+            </article>
+            <article>
+              <span>04</span>
+              <h3>Ward-level visibility</h3>
+              <p>Complaints are organized by ward and service category for quicker municipal action.</p>
+            </article>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <section class="auth-screen" id="loginScreen" aria-labelledby="authTitle" hidden>
+      <a class="auth-brand" href="#">
+        <span class="brand-mark" aria-hidden="true">VMC</span>
+        <span>
+          <strong>Vadodara Municipal Corporation</strong>
+          <small>Secure citizen portal</small>
+        </span>
+      </a>
       <form class="login-panel" id="loginForm" novalidate>
         <div class="section-heading">
           <p class="section-kicker">Secure access</p>
           <h2 id="authTitle">Sign in</h2>
         </div>
-        <div class="role-tabs auth-mode-tabs" role="group" aria-label="Choose sign in or sign up">
-          <button class="role-tab active" type="button" data-auth-mode="signin" aria-pressed="true">Sign in</button>
-          <button class="role-tab" type="button" data-auth-mode="signup" aria-pressed="false">Sign up</button>
+        <p class="auth-intro">Use your citizen or administrator account to continue to the complaint management portal.</p>
+        <div class="auth-mode-tabs" aria-label="Choose sign in or sign up">
+          <button class="auth-mode-link active" type="button" data-auth-mode="signin" aria-pressed="true">Login</button>
+          <button class="auth-mode-link" type="button" data-auth-mode="signup" aria-pressed="false">Signup</button>
         </div>
         <div class="role-tabs" id="authRoleTabs" role="group" aria-label="Choose login role">
-          <button class="role-tab active" type="button" data-login-role="user" aria-pressed="true">User</button>
+          <button class="role-tab active" type="button" data-login-role="user" aria-pressed="true">Citizen</button>
           <button class="role-tab" type="button" data-login-role="admin" aria-pressed="false">Admin</button>
         </div>
         <input type="hidden" name="mode" value="signin" />
         <input type="hidden" name="role" value="user" />
         <label class="signup-only" hidden>
           Full name
-          <input name="name" autocomplete="name" placeholder="Your name" />
+          <input name="name" autocomplete="name" placeholder="Your full name" />
           <span class="field-error" data-auth-error-for="name"></span>
         </label>
         <label>
           Email address
-          <input name="email" type="email" autocomplete="email" placeholder="Email address" required />
+          <input name="email" type="email" autocomplete="email" placeholder="name@example.com" required />
           <span class="field-error" data-auth-error-for="email"></span>
         </label>
         <label>
           Password
           <div class="password-container">
             <input name="password" type="password" autocomplete="current-password" placeholder="Password" required />
-            <button class="password-toggle" type="button" aria-label="Show password">👁️</button>
+            <button class="password-toggle" type="button" aria-label="Show password">Show</button>
           </div>
           <span class="field-error" data-auth-error-for="password"></span>
         </label>
@@ -65,7 +136,7 @@
           Confirm Password
           <div class="password-container">
             <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm your password" />
-            <button class="password-toggle" type="button" aria-label="Show password">👁️</button>
+            <button class="password-toggle" type="button" aria-label="Show password">Show</button>
           </div>
           <span class="field-error" data-auth-error-for="confirmPassword"></span>
         </label>

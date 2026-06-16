@@ -21,6 +21,7 @@ const detectLocation = document.querySelector("#detectLocation");
 const mapStatus = document.querySelector("#mapStatus");
 const mapPreview = document.querySelector("#mapPreview");
 const viewButtons = document.querySelectorAll("[data-view]");
+const landingScreen = document.querySelector("#landingScreen");
 const loginScreen = document.querySelector("#loginScreen");
 const appShell = document.querySelector("#appShell");
 const loginForm = document.querySelector("#loginForm");
@@ -310,6 +311,7 @@ async function requestJson(url, options = {}) {
 
 function setAuthenticated(user) {
   currentUser = user;
+  landingScreen.hidden = Boolean(user);
   loginScreen.hidden = Boolean(user);
   appShell.hidden = !user;
 
@@ -321,6 +323,7 @@ function setAuthenticated(user) {
     casesKicker.textContent = "Status tracking";
     casesTitle.textContent = "Complaint status";
     casesNavLink.textContent = "Status";
+    showPublicView(window.location.hash || "#");
     return;
   }
 
@@ -340,6 +343,27 @@ function setAuthenticated(user) {
       caseList.innerHTML = `<div class="empty-state">${error.message}</div>`;
     })
     .finally(() => scrollToPendingHash());
+}
+
+function showPublicView(hash = window.location.hash) {
+  if (currentUser) return;
+
+  const normalizedHash = hash === "#signup" ? "#signup" : hash === "#login" ? "#login" : "#";
+  const isAuthView = normalizedHash === "#login" || normalizedHash === "#signup";
+  landingScreen.hidden = isAuthView;
+  loginScreen.hidden = !isAuthView;
+  appShell.hidden = true;
+
+  if (normalizedHash === "#signup") {
+    setAuthMode("signup");
+  } else if (normalizedHash === "#login") {
+    setAuthMode("signin");
+  }
+
+  if (!isAuthView) {
+    setAuthErrors();
+    loginMessage.textContent = "";
+  }
 }
 
 function scrollToPendingHash() {
@@ -373,9 +397,11 @@ function setAuthMode(mode) {
   if (mode === "signup") {
     loginForm.elements.role.value = "user";
   }
-  authTitle.textContent = mode === "signup" ? "Create account" : "Sign in";
-  authSubmitButton.textContent = mode === "signup" ? "Sign up" : "Sign in";
+  authTitle.textContent = mode === "signup" ? "Create your citizen account" : "Login to your account";
+  authSubmitButton.textContent = mode === "signup" ? "Create Account" : "Login";
   loginForm.elements.name.required = mode === "signup";
+  loginForm.elements.confirmPassword.required = mode === "signup";
+  loginForm.elements.password.autocomplete = mode === "signup" ? "new-password" : "current-password";
   authRoleTabs.hidden = mode === "signup";
   authModeTabs.forEach((button) => {
     const isActive = button.dataset.authMode === mode;
@@ -679,6 +705,9 @@ loginForm.addEventListener("submit", async (event) => {
     loginForm.reset();
     setAuthMode("signin");
     setLoginRole(data.user.role);
+    if (window.location.hash === "#login" || window.location.hash === "#signup") {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
     setAuthenticated(data.user);
   } catch (error) {
     if (error.data && error.data.errors) {
@@ -691,7 +720,14 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 authModeTabs.forEach((button) => {
-  button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
+  button.addEventListener("click", () => {
+    const hash = button.dataset.authMode === "signup" ? "#signup" : "#login";
+    if (window.location.hash !== hash) {
+      window.location.hash = hash;
+    } else {
+      showPublicView(hash);
+    }
+  });
 });
 
 roleTabs.forEach((button) => {
@@ -700,6 +736,7 @@ roleTabs.forEach((button) => {
 
 logoutButton.addEventListener("click", async () => {
   await requestJson("/api/logout", { method: "POST" });
+  window.location.hash = "#login";
   setAuthenticated(null);
   loginMessage.textContent = "Logged out successfully.";
 });
@@ -758,9 +795,17 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
     pendingHash = hash;
     window.location.hash = hash;
 
+    if (!currentUser && (hash === "#login" || hash === "#signup")) {
+      event.preventDefault();
+      showPublicView(hash);
+      loginScreen.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
     if (!currentUser) {
       event.preventDefault();
       loginMessage.textContent = "Please sign in to view that section.";
+      showPublicView("#login");
       loginScreen.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -772,6 +817,12 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
       pendingHash = "";
     }
   });
+});
+
+window.addEventListener("hashchange", () => {
+  if (!currentUser) {
+    showPublicView(window.location.hash);
+  }
 });
 
 viewButtons.forEach((button) => {
