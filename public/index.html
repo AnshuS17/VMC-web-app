@@ -103,12 +103,12 @@
           <p class="section-kicker">Secure access</p>
           <h2 id="authTitle">Sign in</h2>
         </div>
-        <p class="auth-intro">Use your citizen or administrator account to continue to the complaint management portal.</p>
+        <p class="auth-intro">Use your registered email and password. The portal will open the correct citizen or admin workspace automatically.</p>
         <div class="auth-mode-tabs" aria-label="Choose sign in or sign up">
           <button class="auth-mode-link active" type="button" data-auth-mode="signin" aria-pressed="true">Login</button>
           <button class="auth-mode-link" type="button" data-auth-mode="signup" aria-pressed="false">Signup</button>
         </div>
-        <div class="role-tabs" id="authRoleTabs" role="group" aria-label="Choose login role">
+        <div class="role-tabs" id="authRoleTabs" role="group" aria-label="Choose login role" hidden>
           <button class="role-tab active" type="button" data-login-role="user" aria-pressed="true">Citizen</button>
           <button class="role-tab" type="button" data-login-role="admin" aria-pressed="false">Admin</button>
         </div>
@@ -128,7 +128,12 @@
           Password
           <div class="password-container">
             <input name="password" type="password" autocomplete="current-password" placeholder="Password" required />
-            <button class="password-toggle" type="button" aria-label="Show password">Show</button>
+            <button class="password-toggle is-hidden" type="button" aria-label="Show password" title="Show password">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
           </div>
           <span class="field-error" data-auth-error-for="password"></span>
         </label>
@@ -136,7 +141,12 @@
           Confirm Password
           <div class="password-container">
             <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm your password" />
-            <button class="password-toggle" type="button" aria-label="Show password">Show</button>
+            <button class="password-toggle is-hidden" type="button" aria-label="Show password" title="Show password">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
           </div>
           <span class="field-error" data-auth-error-for="confirmPassword"></span>
         </label>
@@ -155,7 +165,7 @@
           </div>
         </div>
         <nav class="nav-actions" aria-label="Primary">
-          <a href="#report">Report Issue</a>
+          <a class="citizen-only" href="#report">Report Issue</a>
           <a class="admin-only" href="#dashboard">Dashboard</a>
           <a href="#cases" id="casesNavLink">Status</a>
           <span class="user-badge" id="userBadge"></span>

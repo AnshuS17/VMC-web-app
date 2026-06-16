@@ -207,8 +207,8 @@ async function requestStaticJson(url, options = {}) {
 
   if (parsedUrl.pathname === "/api/login" && method === "POST") {
     const payload = JSON.parse(options.body || "{}");
-    const match = store.users.find((item) => item.email === String(payload.email || "").toLowerCase() && item.password === payload.password && item.role === payload.role);
-    if (!match) staticError("Invalid email, password, or role.");
+    const match = store.users.find((item) => item.email === String(payload.email || "").toLowerCase() && item.password === payload.password);
+    if (!match) staticError("Invalid email or password.");
     localStorage.setItem(staticSessionKey, match.email);
     return { user: publicStaticUser(match) };
   }
@@ -402,7 +402,7 @@ function setAuthMode(mode) {
   loginForm.elements.name.required = mode === "signup";
   loginForm.elements.confirmPassword.required = mode === "signup";
   loginForm.elements.password.autocomplete = mode === "signup" ? "new-password" : "current-password";
-  authRoleTabs.hidden = mode === "signup";
+  authRoleTabs.hidden = true;
   authModeTabs.forEach((button) => {
     const isActive = button.dataset.authMode === mode;
     button.classList.toggle("active", isActive);
@@ -696,6 +696,9 @@ loginForm.addEventListener("submit", async (event) => {
     loginMessage.textContent = "Please fix the highlighted fields.";
     return;
   }
+  if (payload.mode !== "signup") {
+    delete payload.role;
+  }
   const endpoint = payload.mode === "signup" ? "/api/signup" : "/api/login";
   try {
     const data = await requestJson(endpoint, {
@@ -758,6 +761,8 @@ passwordToggles.forEach((toggle) => {
     const isPassword = input.type === "password";
     input.type = isPassword ? "text" : "password";
     toggle.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+    toggle.setAttribute("title", isPassword ? "Hide password" : "Show password");
+    toggle.classList.toggle("is-hidden", !isPassword);
   });
 });
 
