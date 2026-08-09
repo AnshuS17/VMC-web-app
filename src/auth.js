@@ -1,6 +1,14 @@
 const { createHmac, randomBytes, scryptSync, timingSafeEqual } = require("crypto");
 const { AUTH_SECRET, SESSION_COOKIE, IS_VERCEL } = require("./config.js");
 const { sendJson } = require("./utils.js");
+const { initializeApp, getApps, getApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+
+// Initialize Firebase Admin (uses GOOGLE_APPLICATION_CREDENTIALS or default config)
+const firebaseApp = getApps().length ? getApp() : initializeApp({
+  projectId: "vmc-portal-auth-2026"
+});
+const adminAuth = getAuth(firebaseApp);
 
 function hashPassword(password, salt = randomBytes(16).toString("hex")) {
   const hash = scryptSync(String(password), salt, 64).toString("hex");
@@ -21,6 +29,7 @@ function validateAuthPayload(payload, mode) {
   const email = String(payload.email || "").trim().toLowerCase();
   const password = String(payload.password || "").trim();
   const name = String(payload.name || "").trim();
+  const phone = String(payload.phone || "").trim();
   const role = String(payload.role || "user").trim().toLowerCase();
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -33,7 +42,10 @@ function validateAuthPayload(payload, mode) {
     errors.confirmPassword = "Passwords do not match";
   }
   if (mode === "signup" && !name) {
-    errors.name = "Enter your name";
+    errors.name = "Enter your full name";
+  }
+  if (mode === "signup" && !/^[0-9]{10}$/.test(phone)) {
+    errors.phone = "Enter a valid 10-digit mobile number";
   }
   if (!["user", "admin"].includes(role)) {
     errors.role = "Choose a valid account type";
@@ -42,7 +54,7 @@ function validateAuthPayload(payload, mode) {
     errors.role = "Admin sign up is disabled";
   }
 
-  return { errors, email, password, name, role };
+  return { errors, email, password, name, phone, role };
 }
 
 function base64UrlEncode(value) {
@@ -125,6 +137,15 @@ function requireSession(req, res, role) {
   return session;
 }
 
+async function verifyFirebaseToken(idToken) {
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    return decodedToken;
+  } catch (error) {
+    return null;
+  }
+}
+
 module.exports = {
   hashPassword,
   verifyPassword,
@@ -134,5 +155,6 @@ module.exports = {
   verifySession,
   sessionCookie,
   expiredSessionCookie,
-  requireSession
+  requireSession,
+  verifyFirebaseToken
 };

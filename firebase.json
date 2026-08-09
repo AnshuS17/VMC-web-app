@@ -1,0 +1,12 @@
+{
+  "auth": {
+    "providers": {
+      "anonymous": false,
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "VMC Services",
+        "supportEmail": "as9861834311@gmail.com"
+      }
+    }
+  }
+}

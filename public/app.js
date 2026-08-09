@@ -26,14 +26,22 @@ const loginScreen = document.querySelector("#loginScreen");
 const homeView = document.querySelector("#homeView");
 const portalViews = document.querySelector("#portalViews");
 const portalLoginBtn = document.querySelector("#portalLoginBtn");
-const loginForm = document.querySelector("#loginForm");
-const loginMessage = document.querySelector("#loginMessage");
-const roleTabs = document.querySelectorAll("[data-login-role]");
-const authModeTabs = document.querySelectorAll("[data-auth-mode]");
-const authRoleTabs = document.querySelector("#authRoleTabs");
-const authTitle = document.querySelector("#authTitle");
-const authSubmitButton = document.querySelector("#authSubmitButton");
-const signupOnlyNodes = document.querySelectorAll(".signup-only");
+
+// Auth Elements
+const signInForm = document.querySelector("#signInForm");
+const signUpForm = document.querySelector("#signUpForm");
+const forgotPasswordForm = document.querySelector("#forgotPasswordForm");
+const signInCard = document.querySelector("#signInCard");
+const signUpCard = document.querySelector("#signUpCard");
+const forgotPasswordCard = document.querySelector("#forgotPasswordCard");
+const btnForgotToggle = document.querySelector("#btnForgotToggle");
+const btnBackToSignIn = document.querySelector("#btnBackToSignIn");
+const btnMobileSignIn = document.querySelector("#btnMobileSignIn");
+const btnMobileSignUp = document.querySelector("#btnMobileSignUp");
+const signInMessage = document.querySelector("#signInMessage");
+const signUpMessage = document.querySelector("#signUpMessage");
+const forgotMessage = document.querySelector("#forgotMessage");
+const btnSendReset = document.querySelector("#btnSendReset");
 const userBadge = document.querySelector("#userBadge");
 const logoutButton = document.querySelector("#logoutButton");
 const adminOnlyNodes = document.querySelectorAll(".admin-only");
@@ -66,7 +74,7 @@ function handleRoute() {
     } else {
       // Not authenticated but trying to access a portal route
       loginScreen.hidden = false;
-      loginMessage.textContent = "Please sign in to view that section.";
+      if (signInMessage) signInMessage.textContent = "Please sign in to view that section.";
       window.location.hash = '#portalLogin';
     }
   } else {
@@ -174,48 +182,35 @@ function scrollToPendingHash() {
   // Handled by handleRoute now
 }
 
-function setLoginRole(role) {
-  loginForm.elements.role.value = role;
-  const isSignup = loginForm.elements.mode.value === "signup";
-  loginForm.elements.email.placeholder = isSignup ? `${role}@example.com` : role === "admin" ? "admin@example.com" : "user@example.com";
-  loginForm.elements.password.placeholder = isSignup ? "At least 6 characters" : role === "admin" ? "admin123" : "user123";
-  roleTabs.forEach((button) => {
-    const isActive = button.dataset.loginRole === role;
-    button.classList.toggle("active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
-  });
-  updateAuthFields();
-}
-
-function setAuthMode(mode) {
-  loginForm.elements.mode.value = mode;
-  if (mode === "signup") {
-    loginForm.elements.role.value = "user";
-  }
-  authTitle.textContent = mode === "signup" ? "Create account" : "Sign in";
-  authSubmitButton.textContent = mode === "signup" ? "Sign up" : "Sign in";
-  loginForm.elements.name.required = mode === "signup";
-  authRoleTabs.hidden = mode === "signup";
-  authModeTabs.forEach((button) => {
-    const isActive = button.dataset.authMode === mode;
-    button.classList.toggle("active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
-  });
-  setAuthErrors();
-  updateAuthFields();
-  setLoginRole(loginForm.elements.role.value);
-}
-
-function updateAuthFields() {
-  const isSignup = loginForm.elements.mode.value === "signup";
-  signupOnlyNodes.forEach((node) => {
-    node.hidden = !isSignup;
-  });
-}
-
-function setAuthErrors(errors = {}) {
-  document.querySelectorAll("[data-auth-error-for]").forEach((node) => {
+function setAuthErrors(form, errors = {}) {
+  form.querySelectorAll("[data-auth-error-for]").forEach((node) => {
     node.textContent = errors[node.dataset.authErrorFor] || "";
+  });
+}
+
+function showForgotPassword() {
+  signInCard.hidden = true;
+  signUpCard.hidden = true;
+  forgotPasswordCard.hidden = false;
+}
+
+function hideForgotPassword() {
+  forgotPasswordCard.hidden = true;
+  signInCard.hidden = false;
+  signUpCard.hidden = false;
+}
+
+if (btnForgotToggle) btnForgotToggle.addEventListener("click", showForgotPassword);
+if (btnBackToSignIn) btnBackToSignIn.addEventListener("click", hideForgotPassword);
+
+if (btnMobileSignUp) {
+  btnMobileSignUp.addEventListener("click", () => {
+    signUpCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+if (btnMobileSignIn) {
+  btnMobileSignIn.addEventListener("click", () => {
+    signInCard.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 
@@ -377,9 +372,8 @@ function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("vmc-theme", theme);
   const isDark = theme === "dark";
-  themeText.textContent = isDark ? "Light" : "Dark";
-  themeIcon.textContent = isDark ? "L" : "D";
-  themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+  if (themeText) themeText.textContent = isDark ? "Light mode" : "Dark mode";
+  if (themeToggle) themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
 }
 
 function applyCaseView(view) {
@@ -453,103 +447,154 @@ async function updateStatus(id, status) {
   await loadComplaints();
 }
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  setErrors();
-  formMessage.textContent = "";
+if (form) {
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setErrors();
+    formMessage.textContent = "";
 
-  const payload = Object.fromEntries(new FormData(form).entries());
+    const payload = Object.fromEntries(new FormData(form).entries());
 
-  try {
-    const data = await requestJson("/api/complaints", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    form.reset();
-    formMessage.textContent = `Complaint ${data.complaint.id} submitted successfully.`;
-    await loadComplaints();
-    document.querySelector("#cases").scrollIntoView({ behavior: "smooth", block: "start" });
-    window.location.hash = "#cases";
-  } catch (error) {
-    if (error.data && error.data.errors) {
-      setErrors(error.data.errors);
-      formMessage.textContent = "Please fix the highlighted fields.";
+    try {
+      const data = await requestJson("/api/complaints", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      form.reset();
+      formMessage.textContent = `Complaint ${data.complaint.id} submitted successfully.`;
+      await loadComplaints();
+      document.querySelector("#cases").scrollIntoView({ behavior: "smooth", block: "start" });
+      window.location.hash = "#cases";
+    } catch (error) {
+      if (error.data && error.data.errors) {
+        setErrors(error.data.errors);
+        formMessage.textContent = "Please fix the highlighted fields.";
+        return;
+      }
+      formMessage.textContent = error.message;
+    }
+  });
+}
+
+if (signInForm) {
+  signInForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    signInMessage.textContent = "";
+    setAuthErrors(signInForm);
+
+    const payload = Object.fromEntries(new FormData(signInForm).entries());
+    const originalText = signInForm.querySelector(".submit-button").textContent;
+    signInForm.querySelector(".submit-button").textContent = "Signing In...";
+    
+    try {
+      const data = await requestJson("/api/login", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      signInForm.reset();
+      setAuthenticated(data.user);
+    } catch (error) {
+      if (error.data && error.data.errors) {
+        setAuthErrors(signInForm, error.data.errors);
+        signInMessage.textContent = "Please fix the highlighted fields.";
+      } else {
+        signInMessage.textContent = error.message;
+      }
+    } finally {
+      signInForm.querySelector(".submit-button").textContent = originalText;
+    }
+  });
+}
+
+if (signUpForm) {
+  signUpForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    signUpMessage.textContent = "";
+    setAuthErrors(signUpForm);
+
+    const payload = Object.fromEntries(new FormData(signUpForm).entries());
+    
+    if (payload.password !== payload.confirmPassword) {
+      setAuthErrors(signUpForm, { confirmPassword: "Passwords do not match" });
+      signUpMessage.textContent = "Please fix the highlighted fields.";
       return;
     }
-    formMessage.textContent = error.message;
-  }
-});
 
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  loginMessage.textContent = "";
-  setAuthErrors();
+    const originalText = signUpForm.querySelector(".submit-button").textContent;
+    signUpForm.querySelector(".submit-button").textContent = "Creating Account...";
 
-  const payload = Object.fromEntries(new FormData(loginForm).entries());
-  if (payload.mode === "signup" && payload.password !== payload.confirmPassword) {
-    setAuthErrors({ confirmPassword: "Passwords do not match" });
-    loginMessage.textContent = "Please fix the highlighted fields.";
-    return;
-  }
-  const endpoint = payload.mode === "signup" ? "/api/signup" : "/api/login";
-  try {
-    const data = await requestJson(endpoint, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    loginForm.reset();
-    setAuthMode("signin");
-    setLoginRole(data.user.role);
-    setAuthenticated(data.user);
-  } catch (error) {
-    if (error.data && error.data.errors) {
-      setAuthErrors(error.data.errors);
-      loginMessage.textContent = "Please fix the highlighted fields.";
+    try {
+      const data = await requestJson("/api/signup", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      signUpForm.reset();
+      setAuthenticated(data.user);
+    } catch (error) {
+      if (error.data && error.data.errors) {
+        setAuthErrors(signUpForm, error.data.errors);
+        signUpMessage.textContent = "Please fix the highlighted fields.";
+      } else {
+        signUpMessage.textContent = error.message;
+      }
+    } finally {
+      signUpForm.querySelector(".submit-button").textContent = originalText;
+    }
+  });
+}
+
+if (btnSendReset) {
+  btnSendReset.addEventListener("click", () => {
+    const email = forgotPasswordForm.elements.email.value;
+    if (!email) {
+      forgotMessage.textContent = "Please enter your email.";
       return;
     }
-    loginMessage.textContent = error.message;
-  }
-});
+    forgotMessage.textContent = "Reset link sent if the email exists.";
+    forgotMessage.style.color = "var(--text-primary)";
+    forgotPasswordForm.reset();
+  });
+}
 
-authModeTabs.forEach((button) => {
-  button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
-});
+if (logoutButton) {
+  logoutButton.addEventListener("click", async () => {
+    await requestJson("/api/logout", { method: "POST" });
+    setAuthenticated(null);
+    if (typeof loginMessage !== "undefined" && loginMessage) {
+      loginMessage.textContent = "Logged out successfully.";
+    }
+  });
+}
 
-roleTabs.forEach((button) => {
-  button.addEventListener("click", () => setLoginRole(button.dataset.loginRole));
-});
+if (themeToggle) {
+  themeToggle.addEventListener("click", () => {
+    const current = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(current);
+    if (currentUser && currentUser.role === "admin") {
+      loadComplaints(); // Reload complaints to redraw charts with new theme colors
+    }
+  });
+}
 
-logoutButton.addEventListener("click", async () => {
-  await requestJson("/api/logout", { method: "POST" });
-  setAuthenticated(null);
-  loginMessage.textContent = "Logged out successfully.";
-});
+if (detectLocation) {
+  detectLocation.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      mapStatus.textContent = "Location detection is not supported in this browser.";
+      return;
+    }
 
-themeToggle.addEventListener("click", () => {
-  const current = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  applyTheme(current);
-  if (currentUser && currentUser.role === "admin") {
-    loadComplaints(); // Reload complaints to redraw charts with new theme colors
-  }
-});
-
-detectLocation.addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    mapStatus.textContent = "Location detection is not supported in this browser.";
-    return;
-  }
-
-  mapStatus.textContent = "Requesting location permission...";
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      setDetectedLocation(position.coords.latitude, position.coords.longitude);
-    },
-    () => {
-      mapStatus.textContent = "Location permission was not granted. You can still type the area manually.";
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-  );
-});
+    mapStatus.textContent = "Requesting location permission...";
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setDetectedLocation(position.coords.latitude, position.coords.longitude);
+      },
+      () => {
+        mapStatus.textContent = "Location permission was not granted. You can still type the area manually.";
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  });
+}
 
 const menuToggle = document.querySelector(".menu-toggle");
 const mainNav = document.querySelector(".main-nav");
@@ -615,17 +660,17 @@ viewButtons.forEach((button) => {
 });
 
 let searchTimer;
-searchInput.addEventListener("input", () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(loadComplaints, 180);
-});
-statusFilter.addEventListener("change", loadComplaints);
-serviceFilter.addEventListener("change", loadComplaints);
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadComplaints, 180);
+  });
+}
+if (statusFilter) statusFilter.addEventListener("change", loadComplaints);
+if (serviceFilter) serviceFilter.addEventListener("change", loadComplaints);
 
 applyTheme(localStorage.getItem("vmc-theme") || "light");
 applyCaseView(localStorage.getItem("vmc-case-view") || "list");
-setAuthMode("signin");
-setLoginRole("user");
 requestJson("/api/session")
   .then((data) => setAuthenticated(data.user))
   .catch(() => setAuthenticated(null));

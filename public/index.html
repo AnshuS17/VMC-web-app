@@ -33,6 +33,10 @@
           <a href="#contact">Contact</a>
         </nav>
         <div class="nav-tools">
+          <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark/light mode">
+            <div class="theme-switch" aria-hidden="true"></div>
+            <span class="theme-switch-label" id="themeText">Dark mode</span>
+          </button>
           <span class="user-badge" id="userBadge" hidden></span>
           <a href="#dashboard" class="btn-login admin-only" id="dashNavLink" hidden>Dashboard</a>
           <a href="#cases" class="btn-login" id="casesNavLink" hidden>Status</a>
@@ -57,7 +61,7 @@
               <a href="#services" class="hero-link">Explore Citizen Services &rarr;</a>
             </div>
             <div class="hero-image-wrapper">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Lakshmi_Vilas_Palace-Vadodara.jpg" alt="Vadodara Laxmi Vilas Palace" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; filter: grayscale(20%);" />
+              <img src="/vadodara_palace.png" alt="Vadodara Laxmi Vilas Palace" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; filter: grayscale(20%);" />
             </div>
           </div>
         </section>
@@ -308,50 +312,149 @@
       <!-- PORTAL VIEWS -->
       <div id="portalViews" hidden>
         <!-- Login Form -->
-        <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
-          <div class="login-visual"></div> <!-- Hidden via CSS, kept for backwards compatibility if needed -->
-          <form class="login-panel" id="loginForm" novalidate>
-            <h2 id="authTitle">Sign in to Portal</h2>
-            <div class="role-tabs auth-mode-tabs" role="group">
-              <button class="role-tab active" type="button" data-auth-mode="signin" aria-pressed="true">Sign in</button>
-              <button class="role-tab" type="button" data-auth-mode="signup" aria-pressed="false">Sign up</button>
-            </div>
-            <div class="role-tabs" id="authRoleTabs" role="group">
-              <button class="role-tab active" type="button" data-login-role="user" aria-pressed="true">User</button>
-              <button class="role-tab" type="button" data-login-role="admin" aria-pressed="false">Admin</button>
-            </div>
-            <input type="hidden" name="mode" value="signin" />
-            <input type="hidden" name="role" value="user" />
+      <section id="loginScreen" class="auth-portal-section" hidden>
+        <div class="auth-portal-header">
+          <div class="auth-logo-placeholder">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+              <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h1>Vadodara Municipal Corporation</h1>
+          <h2>Citizen Services Portal</h2>
+          <p>Access municipal services, submit complaints, track applications and manage your citizen account.</p>
+        </div>
+
+        <div class="auth-portal-body">
+          <div class="auth-cards-container" id="authCardsContainer">
             
-            <label class="signup-only" hidden>
-              Full name
-              <input name="name" autocomplete="name" placeholder="Your name" />
-              <span class="field-error" data-auth-error-for="name"></span>
-            </label>
-            <label>
-              Email address
-              <input name="email" type="email" autocomplete="email" placeholder="user@example.com" required />
-              <span class="field-error" data-auth-error-for="email"></span>
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" autocomplete="current-password" placeholder="user123" required />
-              <span class="field-error" data-auth-error-for="password"></span>
-            </label>
-            <label class="signup-only" hidden>
-              Confirm Password
-              <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm your password" />
-              <span class="field-error" data-auth-error-for="confirmPassword"></span>
-            </label>
-            
-            <button class="submit-button" id="authSubmitButton" type="submit" style="width: 100%;">Sign in</button>
-            <p class="login-message" id="loginMessage" role="status"></p>
-            <div class="login-hints" aria-label="Demo credentials">
-              <span>Existing user: user@example.com / user123</span>
-              <span>Existing admin: admin@example.com / admin123</span>
+            <!-- Sign In Card -->
+            <div class="auth-card" id="signInCard">
+              <div class="auth-card-header">
+                <h3>Sign In</h3>
+                <p>Access your VMC citizen account</p>
+              </div>
+              <form id="signInForm" novalidate>
+                <input type="hidden" name="mode" value="signin" />
+                <input type="hidden" name="role" value="user" />
+                
+                <label>
+                  Email Address
+                  <input name="email" type="email" autocomplete="email" placeholder="Enter your email address" required />
+                  <span class="field-error" data-auth-error-for="email"></span>
+                </label>
+                
+                <label>
+                  Password
+                  <input name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required />
+                  <span class="field-error" data-auth-error-for="password"></span>
+                </label>
+                
+                <div class="auth-actions-row">
+                  <button type="button" class="btn-link" id="btnForgotToggle">Forgot password?</button>
+                </div>
+                
+                <button class="submit-button" type="submit">Sign In &rarr;</button>
+                <p class="login-message" id="signInMessage" role="status"></p>
+
+                <div class="auth-divider">
+                  <hr />
+                  <span>OR</span>
+                  <hr />
+                </div>
+                
+                <div class="auth-switch">
+                  <span>Don't have an account?</span>
+                  <button type="button" class="btn-link" id="btnMobileSignUp">Create an account &rarr;</button>
+                </div>
+              </form>
             </div>
-          </form>
-        </section>
+
+            <!-- Sign Up Card -->
+            <div class="auth-card" id="signUpCard">
+              <div class="auth-card-header">
+                <h3>Create Account</h3>
+                <p>Create your VMC citizen account</p>
+              </div>
+              <form id="signUpForm" novalidate>
+                <input type="hidden" name="mode" value="signup" />
+                <input type="hidden" name="role" value="user" />
+                
+                <label>
+                  Full Name
+                  <input name="name" autocomplete="name" placeholder="Enter your full name" required />
+                  <span class="field-error" data-auth-error-for="name"></span>
+                </label>
+                
+                <label>
+                  Email Address
+                  <input name="email" type="email" autocomplete="email" placeholder="Enter your email address" required />
+                  <span class="field-error" data-auth-error-for="email"></span>
+                </label>
+                
+                <label>
+                  Mobile Number
+                  <input name="phone" type="tel" autocomplete="tel" placeholder="Enter your mobile number" required />
+                  <span class="field-error" data-auth-error-for="phone"></span>
+                </label>
+                
+                <label>
+                  Password
+                  <input name="password" type="password" autocomplete="new-password" placeholder="Create a password" required />
+                  <span class="field-error" data-auth-error-for="password"></span>
+                </label>
+                
+                <label>
+                  Confirm Password
+                  <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm your password" required />
+                  <span class="field-error" data-auth-error-for="confirmPassword"></span>
+                </label>
+                
+                <button class="submit-button" type="submit">Create Account &rarr;</button>
+                <p class="login-message" id="signUpMessage" role="status"></p>
+
+                <div class="auth-switch mobile-only">
+                  <span>Already have an account?</span>
+                  <button type="button" class="btn-link" id="btnMobileSignIn">Sign In &rarr;</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Forgot Password Card -->
+            <div class="auth-card" id="forgotPasswordCard" hidden>
+              <div class="auth-card-header">
+                <h3>Reset your password</h3>
+                <p>Enter your email to receive reset instructions</p>
+              </div>
+              <form id="forgotPasswordForm" novalidate>
+                <label>
+                  Email Address
+                  <input name="email" type="email" placeholder="Enter your registered email" required />
+                </label>
+                
+                <button class="submit-button" type="button" id="btnSendReset">Send Reset Link &rarr;</button>
+                <p class="login-message" id="forgotMessage" role="status"></p>
+                
+                <div class="auth-switch center">
+                  <button type="button" class="btn-link" id="btnBackToSignIn">Back to Sign In</button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </div>
+
+        <footer class="auth-portal-footer">
+          <p>&copy; Vadodara Municipal Corporation</p>
+          <div class="footer-links">
+            <a href="#">Privacy Policy</a>
+            <span>|</span>
+            <a href="#">Terms</a>
+            <span>|</span>
+            <a href="#">Accessibility</a>
+          </div>
+        </footer>
+      </section>
 
         <!-- Report Issue -->
         <section class="content-grid citizen-only" id="report" hidden>

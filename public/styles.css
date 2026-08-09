@@ -107,7 +107,7 @@ a:hover { opacity: 0.7; }
 
 .main-nav {
   display: flex;
-  gap: 32px;
+  gap: clamp(12px, 2vw, 32px);
   align-items: center;
 }
 
@@ -126,6 +126,63 @@ a:hover { opacity: 0.7; }
   gap: 16px;
   align-items: center;
 }
+
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 12px;
+}
+
+.theme-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background-color: var(--border-color);
+  border-radius: 12px;
+  transition: background-color 0.3s;
+}
+.theme-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+[data-theme="dark"] .theme-switch {
+  background-color: var(--accent-color);
+}
+[data-theme="dark"] .theme-switch::after {
+  transform: translateX(20px);
+}
+.theme-switch-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+@media (max-width: 1050px) {
+  .theme-switch-label {
+    display: none;
+  }
+  .main-nav {
+    gap: 12px;
+  }
+  .nav-tools {
+    gap: 8px;
+  }
+}
+
 
 .btn-login, .button.primary, .submit-button {
   background: var(--accent-color);
@@ -476,52 +533,187 @@ a:hover { opacity: 0.7; }
   gap: 24px;
 }
 
-/* PORTAL SPECIFIC STYLES (Overrides for minimal look) */
-.login-screen, .app-shell {
+/* AUTH PORTAL STYLES (Dual-Card Layout) */
+.auth-portal-section {
   min-height: 80vh;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
 }
-.login-screen {
+
+.auth-portal-header {
+  text-align: center;
+  padding: 40px 20px 24px;
+}
+.auth-logo-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-radius: 50%;
+  margin-bottom: 16px;
+}
+.auth-portal-header h1 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+}
+.auth-portal-header h2 {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+}
+.auth-portal-header p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.auth-portal-body {
+  flex-grow: 1;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 40px 5%;
+  padding: 0 20px 60px;
 }
-.login-visual { display: none; } /* Hide the big visual background from legacy */
-.login-panel {
+
+.auth-cards-container {
+  display: flex;
+  gap: 32px;
+  max-width: 900px;
   width: 100%;
-  max-width: 440px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.auth-card {
+  flex: 1;
+  width: 100%;
+  max-width: 420px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   padding: 40px;
-  border-radius: var(--radius-sm);
   box-shadow: var(--shadow-subtle);
 }
-.login-panel h2 {
-  font-size: 1.8rem;
+
+.auth-card-header {
+  margin-bottom: 32px;
+}
+.auth-card-header h3 {
+  font-size: 1.5rem;
+  margin: 0 0 8px;
+}
+.auth-card-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.auth-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
   margin-bottom: 24px;
 }
-.role-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  background: var(--bg-secondary);
-  padding: 4px;
-  border-radius: var(--radius-sm);
-}
-.role-tab {
-  flex: 1;
-  padding: 8px;
+
+.btn-link {
+  background: none;
   border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-}
-.role-tab.active {
-  background: var(--bg-primary);
+  padding: 0;
   color: var(--text-primary);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.btn-link:hover {
+  color: var(--text-secondary);
+}
+
+.auth-card .submit-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 32px 0 24px;
+  gap: 16px;
+}
+.auth-divider hr {
+  flex-grow: 1;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 0;
+}
+.auth-divider span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.auth-switch {
+  text-align: center;
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.auth-switch span {
+  color: var(--text-secondary);
+}
+.auth-switch.center {
+  margin-top: 24px;
+}
+.auth-switch.mobile-only {
+  display: none;
+}
+
+.auth-portal-footer {
+  text-align: center;
+  padding: 32px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+.auth-portal-footer p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+.auth-portal-footer .footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 800px) {
+  .auth-cards-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  
+  /* Hide desktop OR dividers / links that don't make sense stacked */
+  #signInCard .auth-divider,
+  #signInCard .auth-switch {
+    display: none;
+  }
+  
+  /* Show the scroll-to-signin link on mobile */
+  .auth-switch.mobile-only {
+    display: flex;
+    margin-top: 32px;
+  }
 }
 
 .content-grid {
@@ -671,7 +863,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 @media (max-width: 768px) {
-  .main-nav, .nav-tools .theme-toggle, .nav-tools .user-badge { display: none; }
+  .main-nav, .nav-tools .theme-toggle-btn, .nav-tools .user-badge { display: none; }
   .menu-toggle { display: block; }
   .notices-grid, .stats-grid, .footer-grid, .field-row { grid-template-columns: 1fr; }
   .filters { grid-template-columns: 1fr; }

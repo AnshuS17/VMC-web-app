@@ -8,7 +8,9 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "firebase-admin": "^14.2.0",
+    "jsdom": "^30.0.1"
   },
   "keywords": [
     "vadodara",

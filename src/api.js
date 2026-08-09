@@ -117,16 +117,52 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (url.pathname === "/api/auth/firebase" && req.method === "POST") {
+    try {
+      const payload = await readBody(req);
+      const { idToken } = payload;
+      if (!idToken) {
+        sendJson(res, 400, { error: "Missing Firebase token" });
+        return;
+      }
+      
+      const { verifyFirebaseToken } = require("./auth.js");
+      const decoded = await verifyFirebaseToken(idToken);
+      if (!decoded) {
+        sendJson(res, 401, { error: "Invalid Firebase token" });
+        return;
+      }
+
+      // Convert Firebase user to our user format
+      // In a real app we would lookup the user in our DB by decoded.uid
+      // For this demo, we'll create a session user on the fly.
+      const userEmail = decoded.email || decoded.phone_number || decoded.uid;
+      const role = userEmail.includes("admin") ? "admin" : "user";
+      
+      const user = {
+        id: decoded.uid,
+        email: userEmail,
+        name: decoded.name || userEmail,
+        role: role
+      };
+
+      sendJsonWithHeaders(res, 200, { user }, { "Set-Cookie": sessionCookie(createSession(user)) });
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
   if (url.pathname === "/api/signup" && req.method === "POST") {
     try {
       const payload = await readBody(req);
-      const { errors, email, password, name, role } = validateAuthPayload(payload, "signup");
+      const { errors, email, password, name, phone, role } = validateAuthPayload(payload, "signup");
       if (Object.keys(errors).length) {
         sendJson(res, 400, { errors });
         return;
       }
 
-      const user = await createUserAccount({ email, password, name, role });
+      const user = await createUserAccount({ email, password, name, phone, role });
       sendJsonWithHeaders(res, 201, { user }, { "Set-Cookie": sessionCookie(createSession(user)) });
     } catch (error) {
       sendJson(res, error.statusCode || 400, { error: error.message });

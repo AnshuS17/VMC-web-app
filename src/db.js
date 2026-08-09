@@ -11,7 +11,8 @@ function publicUser(user) {
   return {
     email: user.email,
     role: user.role,
-    name: user.name
+    name: user.name,
+    phone: user.phone || ""
   };
 }
 
@@ -226,9 +227,16 @@ async function ensureDatabase() {
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL,
       name TEXT NOT NULL,
+      phone TEXT,
       created_at TIMESTAMPTZ NOT NULL
     )
   `);
+  
+  try {
+    await pool.query("ALTER TABLE users ADD COLUMN phone TEXT;");
+  } catch (err) {
+    // Column already exists
+  }
 
   const countResult = await pool.query("SELECT COUNT(*)::int AS count FROM complaints");
   if (countResult.rows[0].count === 0) {
@@ -249,11 +257,11 @@ async function ensureDatabase() {
 async function insertPostgresUser(user) {
   await getPgPool().query(
     `
-      INSERT INTO users (email, password_hash, role, name, created_at)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO users (email, password_hash, role, name, phone, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (email) DO NOTHING
     `,
-    [user.email, user.passwordHash, user.role, user.name, user.createdAt]
+    [user.email, user.passwordHash, user.role, user.name, user.phone || null, user.createdAt]
   );
 }
 
@@ -407,7 +415,7 @@ async function authenticateUser(email, password) {
   return publicUser(user);
 }
 
-async function createUserAccount({ email, password, name, role }) {
+async function createUserAccount({ email, password, name, phone, role }) {
   const existing = await findUser(email);
   if (existing) {
     const error = new Error("Email is already registered");
@@ -420,6 +428,7 @@ async function createUserAccount({ email, password, name, role }) {
     passwordHash: hashPassword(password),
     role,
     name,
+    phone,
     createdAt: new Date().toISOString()
   };
 
