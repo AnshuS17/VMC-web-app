@@ -1,8 +1,10 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
+const fs = require("fs");
 const { hashPassword, verifyPassword } = require("./auth.js");
-const { MONGODB_URI, MONGODB_DB, SEED_USERS } = require("./config.js");
+const { DATA_DIR, DB_FILE, DATABASE_URL, MONGODB_URI, MONGODB_DB, SEED_USERS } = require("./config.js");
 
+let pgPool;
+let mongoClient;
+let mongoReady = false;
 let databaseReady = false;
 
 function publicUser(user) {
@@ -77,38 +79,78 @@ function seedComplaints() {
   ];
 }
 
-const userSchema = new mongoose.Schema({
-  _id: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  passwordHash: { type: String, required: true },
-  role: { type: String, required: true },
-  name: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-}, { versionKey: false });
+function ensureStore() {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
 
-const complaintSchema = new mongoose.Schema({
-  _id: { type: String, required: true },
-  id: { type: String, required: true, unique: true },
-  serviceType: { type: String, required: true },
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  location: { type: String, required: true },
-  ward: { type: String, required: true },
-  citizenName: { type: String, required: true },
-  phone: { type: String, required: true },
-  latitude: { type: Number, default: null },
-  longitude: { type: Number, default: null },
-  status: { type: String, required: true },
-  priority: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-}, { versionKey: false });
+  if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify({ complaints: seedComplaints(), users: seedUsers() }, null, 2));
+  }
+}
 
-const User = mongoose.model('User', userSchema, 'users');
-const Complaint = mongoose.model('Complaint', complaintSchema, 'complaints');
+function readDb() {
+  ensureStore();
+  const db = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+  let changed = false;
+  if (!Array.isArray(db.complaints)) {
+    db.complaints = seedComplaints();
+    changed = true;
+  }
+  if (!Array.isArray(db.users)) {
+    db.users = seedUsers();
+    changed = true;
+  }
+  if (changed) {
+    writeDb(db);
+  }
+  return db;
+}
+
+function writeDb(db) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+}
+
+function usePostgres() {
+  return Boolean(DATABASE_URL) && !useMongo();
+}
+
+function useMongo() {
+  return Boolean(MONGODB_URI);
+}
+
+function getPgPool() {
+  if (!pgPool) {
+    const { Pool } = require("pg");
+    pgPool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: DATABASE_URL.includes("localhost") ? false : { rejectUnauthorized: false }
+    });
+  }
+  return pgPool;
+}
+
+function normalizeComplaint(row) {
+  return {
+    id: row.id,
+    serviceType: row.service_type,
+    title: row.title,
+    description: row.description,
+    location: row.location,
+    ward: row.ward,
+    citizenName: row.citizen_name,
+    phone: row.phone,
+    latitude: row.latitude === null ? null : Number(row.latitude),
+    longitude: row.longitude === null ? null : Number(row.longitude),
+    status: row.status,
+    priority: row.priority,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString()
+  };
+}
 
 function normalizeMongoComplaint(doc) {
-  const { _id, ...complaint } = doc.toObject ? doc.toObject() : doc;
+  const { _id, ...complaint } = doc;
   return {
     ...complaint,
     createdAt: new Date(complaint.createdAt).toISOString(),
@@ -116,74 +158,247 @@ function normalizeMongoComplaint(doc) {
   };
 }
 
-async function initDatabase() {
-  if (databaseReady) return;
-
-  try {
-    let uri = MONGODB_URI;
-
-    if (!uri) {
-      console.log('⚠️ MONGODB_URI not found. Starting local in-memory database...');
-      const mongoServer = await MongoMemoryServer.create();
-      uri = mongoServer.getUri();
-    }
-
-    await mongoose.connect(uri, { dbName: MONGODB_DB });
-    databaseReady = true;
-    console.log(`✅ MongoDB connected successfully (${uri.includes('localhost') || uri.includes('127.0.0.1') ? 'Local/In-Memory' : 'Cloud'})`);
-
-    const userCount = await User.countDocuments();
-    if (userCount === 0) {
-      await User.insertMany(seedUsers().map(u => ({ _id: u.email, ...u })));
-    }
-    const complaintCount = await Complaint.countDocuments();
-    if (complaintCount === 0) {
-      await Complaint.insertMany(seedComplaints().map(c => ({ _id: c.id, ...c })));
-    }
-  } catch (err) {
-    databaseReady = false;
-    console.error('❌ MongoDB connection error:', err);
+async function getMongoCollection() {
+  if (!mongoClient) {
+    const { MongoClient } = require("mongodb");
+    mongoClient = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+    await mongoClient.connect();
   }
+
+  return mongoClient.db(MONGODB_DB).collection("complaints");
+}
+
+async function getMongoUsersCollection() {
+  if (!mongoClient) {
+    const { MongoClient } = require("mongodb");
+    mongoClient = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+    await mongoClient.connect();
+  }
+
+  return mongoClient.db(MONGODB_DB).collection("users");
+}
+
+async function ensureMongoDatabase() {
+  if (!useMongo() || mongoReady) return;
+
+  const collection = await getMongoCollection();
+  const usersCollection = await getMongoUsersCollection();
+  await collection.createIndex({ id: 1 }, { unique: true });
+  await collection.createIndex({ createdAt: -1 });
+  await usersCollection.createIndex({ email: 1 }, { unique: true });
+  const count = await collection.countDocuments();
+  if (count === 0) {
+    await collection.insertMany(seedComplaints().map((complaint) => ({ _id: complaint.id, ...complaint })));
+  }
+  const userCount = await usersCollection.countDocuments();
+  if (userCount === 0) {
+    await usersCollection.insertMany(seedUsers().map((user) => ({ _id: user.email, ...user })));
+  }
+
+  mongoReady = true;
+}
+
+async function ensureDatabase() {
+  if (!usePostgres() || databaseReady) return;
+
+  const pool = getPgPool();
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS complaints (
+      id TEXT PRIMARY KEY,
+      service_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      location TEXT NOT NULL,
+      ward TEXT NOT NULL,
+      citizen_name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      latitude DOUBLE PRECISION,
+      longitude DOUBLE PRECISION,
+      status TEXT NOT NULL,
+      priority TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      email TEXT PRIMARY KEY,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL
+    )
+  `);
+
+  const countResult = await pool.query("SELECT COUNT(*)::int AS count FROM complaints");
+  if (countResult.rows[0].count === 0) {
+    for (const complaint of seedComplaints()) {
+      await insertPostgresComplaint(complaint);
+    }
+  }
+  const userCountResult = await pool.query("SELECT COUNT(*)::int AS count FROM users");
+  if (userCountResult.rows[0].count === 0) {
+    for (const user of seedUsers()) {
+      await insertPostgresUser(user);
+    }
+  }
+
+  databaseReady = true;
+}
+
+async function insertPostgresUser(user) {
+  await getPgPool().query(
+    `
+      INSERT INTO users (email, password_hash, role, name, created_at)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (email) DO NOTHING
+    `,
+    [user.email, user.passwordHash, user.role, user.name, user.createdAt]
+  );
+}
+
+async function insertPostgresComplaint(complaint) {
+  const pool = getPgPool();
+  await pool.query(
+    `
+      INSERT INTO complaints (
+        id, service_type, title, description, location, ward, citizen_name, phone,
+        latitude, longitude, status, priority, created_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      ON CONFLICT (id) DO NOTHING
+    `,
+    [
+      complaint.id,
+      complaint.serviceType,
+      complaint.title,
+      complaint.description,
+      complaint.location,
+      complaint.ward,
+      complaint.citizenName,
+      complaint.phone,
+      complaint.latitude,
+      complaint.longitude,
+      complaint.status,
+      complaint.priority,
+      complaint.createdAt,
+      complaint.updatedAt
+    ]
+  );
 }
 
 async function getComplaints() {
-  await initDatabase();
-  const docs = await Complaint.find({}).sort({ createdAt: -1 });
-  return docs.map(normalizeMongoComplaint);
+  if (useMongo()) {
+    await ensureMongoDatabase();
+    const collection = await getMongoCollection();
+    const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    return docs.map(normalizeMongoComplaint);
+  }
+
+  if (!usePostgres()) {
+    return readDb().complaints;
+  }
+
+  await ensureDatabase();
+  const result = await getPgPool().query("SELECT * FROM complaints ORDER BY created_at DESC");
+  return result.rows.map(normalizeComplaint);
 }
 
 async function saveComplaint(complaint) {
-  await initDatabase();
-  const doc = new Complaint({
-    _id: complaint.id,
-    ...complaint
-  });
-  await doc.save();
+  if (useMongo()) {
+    await ensureMongoDatabase();
+    const collection = await getMongoCollection();
+    await collection.insertOne({ _id: complaint.id, ...complaint });
+    return complaint;
+  }
+
+  if (!usePostgres()) {
+    const db = readDb();
+    db.complaints.unshift(complaint); // Store new ones at beginning
+    writeDb(db);
+    return complaint;
+  }
+
+  await ensureDatabase();
+  await insertPostgresComplaint(complaint);
   return complaint;
 }
 
 async function updateComplaintStatus(id, status) {
-  await initDatabase();
-  const updatedAt = new Date();
-  const result = await Complaint.findOneAndUpdate(
-    { id },
-    { $set: { status, updatedAt } },
-    { new: true }
+  const updatedAt = new Date().toISOString();
+
+  if (useMongo()) {
+    await ensureMongoDatabase();
+    const collection = await getMongoCollection();
+    const result = await collection.findOneAndUpdate(
+      { id },
+      { $set: { status, updatedAt } },
+      { returnDocument: "after" }
+    );
+    return result ? normalizeMongoComplaint(result) : null;
+  }
+
+  if (!usePostgres()) {
+    const db = readDb();
+    const complaint = db.complaints.find((item) => item.id === id);
+    if (!complaint) return null;
+
+    complaint.status = status;
+    complaint.updatedAt = updatedAt;
+    writeDb(db);
+    return complaint;
+  }
+
+  await ensureDatabase();
+  const result = await getPgPool().query(
+    `
+      UPDATE complaints
+      SET status = $1, updated_at = $2
+      WHERE id = $3
+      RETURNING *
+    `,
+    [status, updatedAt, id]
   );
-  return result ? normalizeMongoComplaint(result) : null;
+
+  return result.rows[0] ? normalizeComplaint(result.rows[0]) : null;
 }
 
 async function findUser(email) {
-  await initDatabase();
   const normalized = String(email || "").trim().toLowerCase();
-  const user = await User.findOne({ email: normalized });
-  return user ? publicUser(user) : null;
+
+  if (useMongo()) {
+    await ensureMongoDatabase();
+    const user = await (await getMongoUsersCollection()).findOne({ email: normalized });
+    return user ? publicUser(user) : null;
+  }
+
+  if (!usePostgres()) {
+    const user = readDb().users.find((item) => item.email === normalized);
+    return user ? publicUser(user) : null;
+  }
+
+  await ensureDatabase();
+  const result = await getPgPool().query("SELECT email, role, name FROM users WHERE email = $1", [normalized]);
+  return result.rows[0] ? publicUser(result.rows[0]) : null;
 }
 
 async function authenticateUser(email, password) {
-  await initDatabase();
   const normalized = String(email || "").trim().toLowerCase();
-  const user = await User.findOne({ email: normalized });
+  let user;
+
+  if (useMongo()) {
+    await ensureMongoDatabase();
+    user = await (await getMongoUsersCollection()).findOne({ email: normalized });
+  } else if (!usePostgres()) {
+    user = readDb().users.find((item) => item.email === normalized);
+  } else {
+    await ensureDatabase();
+    const result = await getPgPool().query(
+      "SELECT email, password_hash AS \"passwordHash\", role, name FROM users WHERE email = $1",
+      [normalized]
+    );
+    user = result.rows[0];
+  }
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return null;
@@ -193,7 +408,6 @@ async function authenticateUser(email, password) {
 }
 
 async function createUserAccount({ email, password, name, role }) {
-  await initDatabase();
   const existing = await findUser(email);
   if (existing) {
     const error = new Error("Email is already registered");
@@ -201,21 +415,33 @@ async function createUserAccount({ email, password, name, role }) {
     throw error;
   }
 
-  const user = new User({
-    _id: email.trim().toLowerCase(),
-    email: email.trim().toLowerCase(),
+  const user = {
+    email,
     passwordHash: hashPassword(password),
     role,
     name,
-    createdAt: new Date()
-  });
+    createdAt: new Date().toISOString()
+  };
 
-  await user.save();
+  if (useMongo()) {
+    await ensureMongoDatabase();
+    await (await getMongoUsersCollection()).insertOne({ _id: user.email, ...user });
+    return publicUser(user);
+  }
+
+  if (!usePostgres()) {
+    const db = readDb();
+    db.users.push(user);
+    writeDb(db);
+    return publicUser(user);
+  }
+
+  await ensureDatabase();
+  await insertPostgresUser(user);
   return publicUser(user);
 }
 
 module.exports = {
-  initDatabase,
   getComplaints,
   saveComplaint,
   updateComplaintStatus,
@@ -223,3 +449,11 @@ module.exports = {
   authenticateUser,
   createUserAccount
 };
+
+function initDatabase() {
+  if (!usePostgres() && !useMongo()) {
+    ensureStore();
+  }
+}
+
+module.exports.initDatabase = initDatabase;

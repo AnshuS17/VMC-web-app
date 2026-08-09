@@ -23,7 +23,9 @@ const mapStatus = document.querySelector("#mapStatus");
 const mapPreview = document.querySelector("#mapPreview");
 const viewButtons = document.querySelectorAll("[data-view]");
 const loginScreen = document.querySelector("#loginScreen");
-const appShell = document.querySelector("#appShell");
+const homeView = document.querySelector("#homeView");
+const portalViews = document.querySelector("#portalViews");
+const portalLoginBtn = document.querySelector("#portalLoginBtn");
 const loginForm = document.querySelector("#loginForm");
 const loginMessage = document.querySelector("#loginMessage");
 const roleTabs = document.querySelectorAll("[data-login-role]");
@@ -41,6 +43,48 @@ const casesTitle = document.querySelector("#casesTitle");
 const casesNavLink = document.querySelector("#casesNavLink");
 let currentUser = null;
 let pendingHash = window.location.hash;
+
+const portalRoutes = ['#portalLogin', '#report', '#dashboard', '#cases'];
+
+function handleRoute() {
+  const hash = window.location.hash || '#home';
+  
+  if (portalRoutes.includes(hash)) {
+    homeView.hidden = true;
+    portalViews.hidden = false;
+    
+    // Manage visibility inside portalViews
+    document.querySelectorAll('#portalViews > section').forEach(sec => {
+      sec.hidden = true;
+    });
+    
+    if (hash === '#portalLogin') {
+      loginScreen.hidden = false;
+    } else if (currentUser) {
+      const target = document.querySelector(hash);
+      if (target) target.hidden = false;
+    } else {
+      // Not authenticated but trying to access a portal route
+      loginScreen.hidden = false;
+      loginMessage.textContent = "Please sign in to view that section.";
+      window.location.hash = '#portalLogin';
+    }
+  } else {
+    // Home routes
+    homeView.hidden = false;
+    portalViews.hidden = true;
+    
+    // Scroll to the specific section if it exists
+    requestAnimationFrame(() => {
+      const target = document.querySelector(hash);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+}
+
+window.addEventListener('hashchange', handleRoute);
 let statusChartInstance = null;
 let typeChartInstance = null;
 
@@ -78,19 +122,30 @@ async function requestJson(url, options = {}) {
 
 function setAuthenticated(user) {
   currentUser = user;
-  loginScreen.hidden = Boolean(user);
-  appShell.hidden = !user;
-
+  
   if (!user) {
-    userBadge.textContent = "";
+    userBadge.hidden = true;
+    logoutButton.hidden = true;
+    portalLoginBtn.hidden = false;
+    
     adminOnlyNodes.forEach((node) => {
       node.hidden = true;
     });
-    casesKicker.textContent = "Status tracking";
-    casesTitle.textContent = "Complaint status";
-    casesNavLink.textContent = "Status";
+    citizenOnlyNodes.forEach((node) => {
+      node.hidden = true;
+    });
+    
+    if (casesKicker) casesKicker.textContent = "Status tracking";
+    if (casesTitle) casesTitle.textContent = "Complaint status";
+    if (casesNavLink) casesNavLink.textContent = "Status";
+    
+    handleRoute();
     return;
   }
+
+  portalLoginBtn.hidden = true;
+  userBadge.hidden = false;
+  logoutButton.hidden = false;
 
   const isAdmin = user.role === "admin";
   adminOnlyNodes.forEach((node) => {
@@ -99,28 +154,24 @@ function setAuthenticated(user) {
   citizenOnlyNodes.forEach((node) => {
     node.hidden = isAdmin;
   });
-  casesKicker.textContent = isAdmin ? "Case management" : "Status tracking";
-  casesTitle.textContent = isAdmin ? "Manage complaints" : "Complaint status";
-  casesNavLink.textContent = isAdmin ? "Manage Cases" : "Status";
+  if (casesKicker) casesKicker.textContent = isAdmin ? "Case management" : "Status tracking";
+  if (casesTitle) casesTitle.textContent = isAdmin ? "Manage complaints" : "Complaint status";
+  if (casesNavLink) casesNavLink.textContent = isAdmin ? "Manage Cases" : "Status";
   userBadge.textContent = `${user.name} (${user.role})`;
-  loadComplaints()
-    .catch((error) => {
-      caseList.innerHTML = `<div class="empty-state">${error.message}</div>`;
-    })
-    .finally(() => scrollToPendingHash());
+  
+  loadComplaints().catch((error) => {
+    if (caseList) caseList.innerHTML = `<div class="empty-state">${error.message}</div>`;
+  });
+  
+  if (window.location.hash === '#portalLogin' || !window.location.hash) {
+     window.location.hash = isAdmin ? '#dashboard' : '#cases';
+  } else {
+     handleRoute();
+  }
 }
 
 function scrollToPendingHash() {
-  const hash = pendingHash || window.location.hash;
-  if (!currentUser || !hash) return;
-
-  const target = document.querySelector(hash);
-  if (!target) return;
-
-  requestAnimationFrame(() => {
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-    pendingHash = "";
-  });
+  // Handled by handleRoute now
 }
 
 function setLoginRole(role) {
@@ -418,6 +469,7 @@ form.addEventListener("submit", async (event) => {
     formMessage.textContent = `Complaint ${data.complaint.id} submitted successfully.`;
     await loadComplaints();
     document.querySelector("#cases").scrollIntoView({ behavior: "smooth", block: "start" });
+    window.location.hash = "#cases";
   } catch (error) {
     if (error.data && error.data.errors) {
       setErrors(error.data.errors);
@@ -499,11 +551,52 @@ detectLocation.addEventListener("click", () => {
   );
 });
 
+const menuToggle = document.querySelector(".menu-toggle");
+const mainNav = document.querySelector(".main-nav");
+
+if (menuToggle && mainNav) {
+  menuToggle.addEventListener("click", () => {
+    mainNav.style.display = mainNav.style.display === "flex" ? "none" : "flex";
+    mainNav.style.flexDirection = "column";
+    mainNav.style.position = "absolute";
+    mainNav.style.top = "80px";
+    mainNav.style.left = "0";
+    mainNav.style.width = "100%";
+    mainNav.style.background = "var(--bg-primary)";
+    mainNav.style.padding = "20px";
+    mainNav.style.borderBottom = "1px solid var(--border-color)";
+    mainNav.style.boxShadow = "var(--shadow-subtle)";
+  });
+  
+  // Close menu on link click
+  mainNav.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      if (window.innerWidth <= 768) {
+        mainNav.style.display = "none";
+      }
+    });
+  });
+  
+  // Handle resize back to desktop
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+      mainNav.style.display = "flex";
+      mainNav.style.flexDirection = "row";
+      mainNav.style.position = "static";
+      mainNav.style.padding = "0";
+      mainNav.style.borderBottom = "none";
+      mainNav.style.boxShadow = "none";
+    } else {
+      mainNav.style.display = "none";
+    }
+  });
+}
+
 document.querySelectorAll("[data-service-card]").forEach((card) => {
   card.addEventListener("click", () => {
     const service = card.dataset.serviceCard;
-    form.elements.serviceType.value = service;
-    document.querySelector("#report").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (form) form.elements.serviceType.value = service;
+    window.location.hash = "#report";
   });
 });
 
@@ -511,23 +604,9 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
   link.addEventListener("click", (event) => {
     const hash = link.getAttribute("href");
     if (!hash || hash === "#") return;
-
-    pendingHash = hash;
-    window.location.hash = hash;
-
-    if (!currentUser) {
-      event.preventDefault();
-      loginMessage.textContent = "Please sign in to view that section.";
-      loginScreen.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    const target = document.querySelector(hash);
-    if (target) {
-      event.preventDefault();
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-      pendingHash = "";
-    }
+    
+    // Hash change will be handled by window.addEventListener('hashchange')
+    // We just let the default behavior (URL change) happen.
   });
 });
 
